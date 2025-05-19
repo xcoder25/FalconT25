@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award } from 'lucide-react'; // Using Award icon as part of the logo
+import { Rocket } from 'lucide-react'; // Changed from Award to Rocket
 
 interface AppLogoProps {
   className?: string;
@@ -16,9 +16,9 @@ export function AppLogo({
 }: AppLogoProps) {
   return (
     <div className={`flex items-center ${className}`}>
-      {showIcon && <Award className="text-primary" size={iconSize} strokeWidth={2.5} />}
+      {showIcon && <Rocket className="text-primary" size={iconSize} strokeWidth={2.5} />}
       <span className={`ml-2 font-bold text-primary ${textSize}`}>
-        Applaud
+        Falcon T25
       </span>
     </div>
   );
