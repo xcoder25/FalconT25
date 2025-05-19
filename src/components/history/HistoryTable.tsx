@@ -2,31 +2,29 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { SignInSignOutRecord, StaffMember } from '@/lib/types';
-import { mockSignInSignOutHistory, mockStaffMembers } from '@/lib/mockData';
+import type { SignInSignOutRecord } from '@/lib/types';
+import { mockSignInSignOutHistory } from '@/lib/mockData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
-import { ArrowDownUp, FilterX } from 'lucide-react';
+import { ArrowDownUp, FilterX, FileText, FileDown } from 'lucide-react'; // Added FileText, FileDown
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast'; // Added useToast
 
-const ALL_CAMERAS_VALUE = "__ALL_CAMERAS__"; // Sentinel value for "All Cameras" option
+const ALL_CAMERAS_VALUE = "__ALL_CAMERAS__"; 
 
-// Helper component to format timestamp on the client side to avoid hydration mismatch
 const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }) => {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    // This effect runs only on the client, after hydration
     setFormattedDate(new Date(isoTimestamp).toLocaleString());
   }, [isoTimestamp]);
 
   if (formattedDate === null) {
-    // Render placeholder during SSR and initial client render
     return <span className="text-sm text-muted-foreground">Loading date...</span>;
   }
 
@@ -35,11 +33,12 @@ const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }
 
 
 export function HistoryTable() {
+  const { toast } = useToast(); // Initialized toast
   const [historyData, setHistoryData] = useState<SignInSignOutRecord[]>(mockSignInSignOutHistory);
-  const [staffNameFilter, setStaffNameFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // Renamed from staffNameFilter
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [cameraFilter, setCameraFilter] = useState('');
-  const [sortColumn, setSortColumn] = useState<'staffName' | 'timestamp' | 'camera' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'staffName' | 'timestamp' | 'camera' | 'type' | null>(null); // Added 'type'
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const uniqueCameras = useMemo(() => {
@@ -50,9 +49,12 @@ export function HistoryTable() {
   const filteredAndSortedHistory = useMemo(() => {
     let filtered = historyData;
 
-    if (staffNameFilter) {
+    if (searchTerm) { // Updated filter logic
+      const lowerSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(record =>
-        record.staffName.toLowerCase().includes(staffNameFilter.toLowerCase())
+        record.staffName.toLowerCase().includes(lowerSearchTerm) ||
+        record.camera.toLowerCase().includes(lowerSearchTerm) ||
+        record.type.toLowerCase().includes(lowerSearchTerm)
       );
     }
 
@@ -62,7 +64,10 @@ export function HistoryTable() {
             let fromMatch = true;
             let toMatch = true;
             if (dateRange.from) {
-                fromMatch = recordDate >= dateRange.from;
+                // Set time to start of day for 'from' date
+                const fromDate = new Date(dateRange.from);
+                fromDate.setHours(0, 0, 0, 0);
+                fromMatch = recordDate >= fromDate;
             }
             if (dateRange.to) {
                 // Set time to end of day for 'to' date for inclusive range
@@ -85,7 +90,6 @@ export function HistoryTable() {
           valA = new Date(a.timestamp).getTime();
           valB = new Date(b.timestamp).getTime();
         } else {
-          // Ensure string comparison for other sortable text fields
           valA = String(a[sortColumn as keyof Omit<SignInSignOutRecord, 'timestamp'>]);
           valB = String(b[sortColumn as keyof Omit<SignInSignOutRecord, 'timestamp'>]);
         }
@@ -93,16 +97,14 @@ export function HistoryTable() {
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
-        // Fallback for non-string (like timestamp getTime())
         return sortDirection === 'asc' ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
       });
     }
 
-
     return filtered;
-  }, [historyData, staffNameFilter, dateRange, cameraFilter, sortColumn, sortDirection]);
+  }, [historyData, searchTerm, dateRange, cameraFilter, sortColumn, sortDirection]);
 
-  const handleSort = (column: 'staffName' | 'timestamp' | 'camera') => {
+  const handleSort = (column: 'staffName' | 'timestamp' | 'camera' | 'type') => {
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -112,72 +114,99 @@ export function HistoryTable() {
   };
   
   const clearFilters = () => {
-    setStaffNameFilter('');
+    setSearchTerm('');
     setDateRange(undefined);
     setCameraFilter('');
     setSortColumn(null);
   };
 
+  const handleExportCSV = () => {
+    toast({
+      title: "Export CSV Clicked",
+      description: "CSV export functionality would be triggered here.",
+    });
+    // Actual CSV export logic would go here
+  };
+
+  const handleExportPDF = () => {
+    toast({
+      title: "Export PDF Clicked",
+      description: "PDF export functionality would be triggered here.",
+    });
+    // Actual PDF export logic would go here
+  };
+
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 border rounded-lg shadow-sm bg-card">
-        <Input
-          placeholder="Filter by Staff Name..."
-          value={staffNameFilter}
-          onChange={(e) => setStaffNameFilter(e.target.value)}
-          className="text-sm"
-        />
-         <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={"outline"}
-              className={`w-full justify-start text-left font-normal text-sm ${!dateRange && "text-muted-foreground"}`}
-            >
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
+      <div className="p-4 border rounded-lg shadow-sm bg-card space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <Input
+            placeholder="Search logs..." // Updated placeholder
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="text-sm lg:col-span-2" // Span search input
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className={`w-full justify-start text-left font-normal text-sm ${!dateRange && "text-muted-foreground"}`}
+              >
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
                 ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Pick a date range</span>
-              )}
+                  <span>Pick a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          <Select 
+            value={cameraFilter === '' ? ALL_CAMERAS_VALUE : cameraFilter} 
+            onValueChange={(selectedValue) => {
+              setCameraFilter(selectedValue === ALL_CAMERAS_VALUE ? '' : selectedValue);
+            }}
+          >
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder="Filter by Camera" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_CAMERAS_VALUE}>All Cameras</SelectItem>
+              {uniqueCameras.map(camera => (
+                <SelectItem key={camera} value={camera} className="text-sm">{camera}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+            <Button variant="outline" onClick={clearFilters} className="text-sm w-full sm:w-auto">
+              <FilterX className="mr-2 h-4 w-4" /> Clear Filters
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={setDateRange}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
-        <Select 
-          value={cameraFilter === '' ? ALL_CAMERAS_VALUE : cameraFilter} 
-          onValueChange={(selectedValue) => {
-            setCameraFilter(selectedValue === ALL_CAMERAS_VALUE ? '' : selectedValue);
-          }}
-        >
-          <SelectTrigger className="text-sm">
-            <SelectValue placeholder="Filter by Camera" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_CAMERAS_VALUE}>All Cameras</SelectItem>
-            {uniqueCameras.map(camera => (
-              <SelectItem key={camera} value={camera} className="text-sm">{camera}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button variant="outline" onClick={clearFilters} className="text-sm">
-          <FilterX className="mr-2 h-4 w-4" /> Clear Filters
-        </Button>
+            <Button variant="outline" onClick={handleExportCSV} className="text-sm w-full sm:w-auto">
+              <FileText className="mr-2 h-4 w-4" /> Export CSV
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} className="text-sm w-full sm:w-auto">
+              <FileDown className="mr-2 h-4 w-4" /> Export PDF
+            </Button>
+          </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border shadow-sm">
@@ -194,7 +223,11 @@ export function HistoryTable() {
                   Timestamp {sortColumn === 'timestamp' && <ArrowDownUp size={14} />}
                 </div>
               </TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('type')}>
+                <div className="flex items-center gap-1">
+                  Type {sortColumn === 'type' && <ArrowDownUp size={14} />}
+                </div>
+              </TableHead>
               <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('camera')}>
                 <div className="flex items-center gap-1">
                   Camera {sortColumn === 'camera' && <ArrowDownUp size={14} />}
@@ -214,7 +247,7 @@ export function HistoryTable() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       record.type === 'signin' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                     }`}>
-                      {record.type === 'signin' ? 'Sign In' : 'Sign Out'}
+                      {record.type.charAt(0).toUpperCase() + record.type.slice(1)}
                     </span>
                   </TableCell>
                   <TableCell>{record.camera}</TableCell>
