@@ -1,3 +1,5 @@
+'use client'; // Added "use client" directive
+
 import type { Recognition, User } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,11 +24,11 @@ export function RecognitionCard({ recognition }: RecognitionCardProps) {
     if (!newComment.trim()) return;
     // Mock: Add comment to list (in real app, this would be an API call)
     console.log("New comment:", newComment);
-    recognition.comments.push({ 
-        id: `c${recognition.comments.length + 1}`, 
+    recognition.comments.push({
+        id: `c${recognition.comments.length + 1}`,
         user: { id: 'currentUser', name: 'You', avatarUrl: 'https://placehold.co/40x40.png?text=Me' }, // Mock current user
-        text: newComment, 
-        timestamp: new Date().toISOString() 
+        text: newComment,
+        timestamp: new Date().toISOString()
     });
     setNewComment('');
   };
