@@ -21,7 +21,7 @@ export interface Recognition {
 export interface Reaction {
   id: string;
   user: User; // Changed from userId to User object
-  emoji: string; 
+  emoji: string;
 }
 
 export interface Comment {
@@ -48,11 +48,12 @@ export interface StaffMember {
 
 export interface SignInSignOutRecord {
   id:string;
-  staffMemberId: string;
-  staffName: string; // For easier display
+  staffMemberId: string; // Can be a special ID for unrecognized
+  staffName: string; // Can be "Unrecognized Person"
   timestamp: string; // ISO date string
-  type: 'signin' | 'signout';
+  type: 'signin' | 'signout' | 'sighting'; // Added 'sighting' for unrecognized
   camera: string; // Camera name or ID
+  snapshotImageUrl?: string; // Optional snapshot of the face
 }
 
 export interface Camera {

@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { CameraOff, Waves, Hand, Loader2 } from 'lucide-react';
+import { CameraOff, Waves, Hand, Loader2, AlertTriangle } from 'lucide-react';
 
 interface MockDetection {
   id: string;
@@ -16,6 +16,7 @@ interface MockDetection {
   height: number; // percentage
   label: string;
   timestamp: string;
+  isUnrecognized?: boolean;
 }
 
 export default function RecognitionViewPage() {
@@ -39,10 +40,11 @@ export default function RecognitionViewPage() {
   
   useEffect(() => {
     // Initialize mock detections with the current time
-    const initialTimestamp = new Date().toLocaleTimeString();
+    const initialTimestamp = new Date().toISOString(); // Use ISO string for consistency
     setMockDetections([
-      { id: 'person1', x: 15, y: 20, width: 30, height: 60, label: 'Person 1', timestamp: initialTimestamp },
-      { id: 'person2', x: 55, y: 30, width: 25, height: 50, label: 'Person 2', timestamp: initialTimestamp },
+      { id: 'person1', x: 15, y: 20, width: 30, height: 60, label: 'Person 1 (Alice)', timestamp: initialTimestamp },
+      { id: 'unrecognized1', x: 60, y: 10, width: 25, height: 50, label: 'Unrecognized', timestamp: initialTimestamp, isUnrecognized: true },
+      { id: 'person2', x: 55, y: 30, width: 25, height: 50, label: 'Person 2 (Bob)', timestamp: initialTimestamp },
     ]);
   }, []);
 
@@ -140,7 +142,9 @@ export default function RecognitionViewPage() {
             {mockDetections.map((detection) => (
               <div
                 key={detection.id}
-                className="absolute border-2 border-primary rounded shadow-lg pointer-events-auto"
+                className={`absolute border-2 rounded shadow-lg pointer-events-auto ${
+                  detection.isUnrecognized ? 'border-destructive' : 'border-primary'
+                }`}
                 style={{
                   left: `${detection.x}%`,
                   top: `${detection.y}%`,
@@ -148,11 +152,14 @@ export default function RecognitionViewPage() {
                   height: `${detection.height}%`,
                 }}
               >
-                <div className="absolute -top-6 left-0 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-t whitespace-nowrap">
+                <div className={`absolute -top-6 left-0 text-xs px-1.5 py-0.5 rounded-t whitespace-nowrap ${
+                  detection.isUnrecognized ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'
+                }`}>
+                  {detection.isUnrecognized && <AlertTriangle className="h-3 w-3 inline mr-1" />}
                   {detection.label}
                 </div>
                 <div className="absolute bottom-0 right-0 bg-black/50 text-white text-xs px-1 py-0.5 rounded-tl">
-                  {currentTime} {}
+                  {currentTime}
                 </div>
               </div>
             ))}

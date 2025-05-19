@@ -49,7 +49,7 @@ export const mockRecognitions: Recognition[] = [
     message: 'Charlie, your dedication to customer satisfaction is inspiring. Thank you!',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
     reactions: [
-        { id: 'r4', user: mockUsers[0], emoji: '👏' }, 
+        { id: 'r4', user: mockUsers[0], emoji: '👏' },
         { id: 'r5', user: mockUsers[1], emoji: '🌟' }
     ],
     comments: [
@@ -61,13 +61,14 @@ export const mockRecognitions: Recognition[] = [
 
 export const mockStaffMembers: StaffMember[] = [
   { id: 'staff1', name: 'Eve Adamson', email: 'eve@example.com', imageUrl: 'https://placehold.co/150x150.png?text=EA', status: 'recognized', department: 'Engineering' },
-  { id: 'staff2', name: 'Frankenstein Monster', email: 'frank@example.com', imageUrl: 'https://placehold.co/150x150.png?text=FM', status: 'unknown', department: 'Research' },
+  { id: 'staff2', name: 'Frankenstein Monster', email: 'frank@example.com', imageUrl: 'https://placehold.co/150x150.png?text=FM', status: 'unknown', department: 'Research' }, // This one is 'unknown'
   { id: 'staff3', name: 'Grace Hopper', email: 'grace@example.com', imageUrl: 'https://placehold.co/150x150.png?text=GH', status: 'active', department: 'Development' },
   { id: 'staff4', name: 'Harry Potter', email: 'harry@example.com', imageUrl: 'https://placehold.co/150x150.png?text=HP', status: 'recognized', department: 'Magic' },
 ];
 
 export const mockSignInSignOutHistory: SignInSignOutRecord[] = [
   { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Front Entrance Cam' },
+  { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 28).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face' },
   { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), type: 'signin', camera: 'Lab Cam 1' },
   { id: 'hist3', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), type: 'signout', camera: 'Front Entrance Cam' },
   { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A' },
@@ -76,10 +77,13 @@ export const mockSignInSignOutHistory: SignInSignOutRecord[] = [
 export const mockCameras: Camera[] = [
   { id: 'cam1', name: 'Front Entrance Cam', rtspUrl: 'rtsp://example.com/cam1', status: 'online' },
   { id: 'cam2', name: 'Lab Cam 1', rtspUrl: 'rtsp://example.com/cam2', status: 'offline' },
-  { id: 'cam3', name: 'Warehouse Cam', rtspUrl: 'rtsp://example.com/cam3', status: 'connecting' },
+  { id: 'cam3', name: 'Lobby Cam', rtspUrl: 'rtsp://example.com/cam3', status: 'online' },
+  { id: 'cam4', name: 'Warehouse Cam', rtspUrl: 'rtsp://example.com/cam4', status: 'connecting' },
+  { id: 'cam5', name: 'Meeting Room A', rtspUrl: 'rtsp://example.com/cam5', status: 'online' },
 ];
 
 export const mockNotifications: AppNotification[] = [
+  { id: 'notif_unrec', title: 'Security Alert: Unrecognized Person', message: 'An unrecognized person was detected at Lobby Cam.', timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(), read: false, type: 'warning' },
   { id: 'notif1', title: 'New Recognition!', message: 'Bob The Builder received a recognition for Team Player.', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), read: false, type: 'recognition' },
   { id: 'notif2', title: 'Camera Offline', message: 'Lab Cam 1 is currently offline. Please check connection.', timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), read: false, type: 'warning' },
   { id: 'notif3', title: 'System Update', message: 'Applaud system will undergo maintenance tonight at 2 AM.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), read: true, type: 'info' },
