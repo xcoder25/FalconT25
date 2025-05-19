@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -7,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { DatePickerWithRange } from '@/components/shared/DatePickerWithRange'; // Assuming this exists or will be created
+// import { DatePickerWithRange } from '@/components/shared/DatePickerWithRange'; // Assuming this exists or will be created
 import type { DateRange } from 'react-day-picker';
 import { ArrowDownUp, FilterX } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
+const ALL_CAMERAS_VALUE = "__ALL_CAMERAS__"; // Sentinel value for "All Cameras" option
 
 export function HistoryTable() {
   const [historyData, setHistoryData] = useState<SignInSignOutRecord[]>(mockSignInSignOutHistory);
@@ -138,12 +140,17 @@ export function HistoryTable() {
             />
           </PopoverContent>
         </Popover>
-        <Select value={cameraFilter} onValueChange={setCameraFilter}>
+        <Select 
+          value={cameraFilter === '' ? ALL_CAMERAS_VALUE : cameraFilter} 
+          onValueChange={(selectedValue) => {
+            setCameraFilter(selectedValue === ALL_CAMERAS_VALUE ? '' : selectedValue);
+          }}
+        >
           <SelectTrigger className="text-sm">
             <SelectValue placeholder="Filter by Camera" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Cameras</SelectItem>
+            <SelectItem value={ALL_CAMERAS_VALUE}>All Cameras</SelectItem>
             {uniqueCameras.map(camera => (
               <SelectItem key={camera} value={camera} className="text-sm">{camera}</SelectItem>
             ))}
