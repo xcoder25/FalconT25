@@ -36,18 +36,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
-      <Card className="w-full max-w-md shadow-2xl bg-card border-border">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4 overflow-hidden">
+      <Card className="w-full max-w-md shadow-2xl bg-card border-border animate-in slide-in-from-bottom-12 duration-700 ease-out">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
+          <div className="mx-auto mb-4 animate-in zoom-in-75 duration-500 delay-100 ease-out">
             <AppLogo iconSize={40} textSize="text-3xl" />
           </div>
-          <CardTitle className="text-2xl text-card-foreground">Admin Login</CardTitle>
-          <CardDescription className="text-muted-foreground">Enter your credentials to access the Falcon T25 dashboard.</CardDescription>
+          <CardTitle className="text-2xl text-card-foreground animate-in slide-in-from-top-6 duration-500 delay-200 ease-out">Admin Login</CardTitle>
+          <CardDescription className="text-muted-foreground animate-in slide-in-from-top-6 duration-500 delay-300 ease-out">Enter your credentials to access the Falcon T25 dashboard.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-2 animate-in slide-in-from-left-10 duration-500 delay-400 ease-out">
               <Label htmlFor="email" className="text-card-foreground">Email</Label>
               <Input
                 id="email"
@@ -60,7 +60,7 @@ export default function LoginPage() {
                 className="bg-input text-foreground border-border placeholder:text-muted-foreground"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 animate-in slide-in-from-right-10 duration-500 delay-500 ease-out">
               <Label htmlFor="password" className="text-card-foreground">Password</Label>
               <div className="relative">
                 <Input
@@ -86,12 +86,12 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-sm text-destructive animate-in duration-300 delay-550 ease-out">{error}</p>}
           </CardContent>
           <CardFooter>
             <Button 
               type="submit" 
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out" 
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out animate-in zoom-in-90 duration-500 delay-600 ease-out" 
               disabled={isLoading}
             >
               {isLoading ? (
