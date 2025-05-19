@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -28,10 +29,11 @@ import {
   Users,
   Settings,
   Bell,
-  Camera as CameraIcon, // Renamed to avoid conflict
+  Camera as CameraIcon, 
   LogOut,
   ChevronDown,
   ChevronUp,
+  ScanFace, // Added ScanFace icon
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,10 +49,11 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/recognition-feed', label: 'Recognition Feed', icon: Award },
   { href: '/dashboard/nominate', label: 'Nominate Colleague', icon: Gift },
+  { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace }, // Added new view
   { href: '/dashboard/history', label: 'Sign-In/Out History', icon: History },
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
   {
-    href: '/dashboard/settings', // This path won't be directly navigable if it's just a header for an accordion
+    href: '/dashboard/settings', 
     label: 'Settings',
     icon: Settings,
     children: [
@@ -74,7 +77,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [pathname]);
 
   const handleLogout = () => {
-    // Simulate logout
     router.push('/login');
   };
 
@@ -118,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                   isActive={pathname === child.href}
                                   className="w-full"
                                 >
-                                  <child.icon className="mr-0" /> {/* Icon already has margin from parent gap */}
+                                  <child.icon className="mr-0" /> 
                                   <span>{child.label}</span>
                                 </SidebarMenuSubButton>
                               </Link>
