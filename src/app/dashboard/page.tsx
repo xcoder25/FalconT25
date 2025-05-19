@@ -1,10 +1,11 @@
+
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockStaffMembers, mockNotifications, mockCameras } from '@/lib/mockData';
 import type { StaffMember, AppNotification, Camera } from '@/lib/types';
-import { AlertCircle, CheckCircle2, Bell, Video, Users, MessageSquare } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Bell, Video, Users, MessageSquare, Award } from 'lucide-react'; // Added Award here
 import Image from 'next/image';
 
 export default function DashboardPage() {
