@@ -1,14 +1,13 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { SignInSignOutRecord, StaffMember } from '@/lib/types';
 import { mockSignInSignOutHistory, mockStaffMembers } from '@/lib/mockData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-// import { DatePickerWithRange } from '@/components/shared/DatePickerWithRange'; // Assuming this exists or will be created
 import type { DateRange } from 'react-day-picker';
 import { ArrowDownUp, FilterX } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,6 +15,24 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
 const ALL_CAMERAS_VALUE = "__ALL_CAMERAS__"; // Sentinel value for "All Cameras" option
+
+// Helper component to format timestamp on the client side to avoid hydration mismatch
+const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }) => {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This effect runs only on the client, after hydration
+    setFormattedDate(new Date(isoTimestamp).toLocaleString());
+  }, [isoTimestamp]);
+
+  if (formattedDate === null) {
+    // Render placeholder during SSR and initial client render
+    return <span className="text-sm text-muted-foreground">Loading date...</span>;
+  }
+
+  return <>{formattedDate}</>;
+};
+
 
 export function HistoryTable() {
   const [historyData, setHistoryData] = useState<SignInSignOutRecord[]>(mockSignInSignOutHistory);
@@ -68,13 +85,15 @@ export function HistoryTable() {
           valA = new Date(a.timestamp).getTime();
           valB = new Date(b.timestamp).getTime();
         } else {
-          valA = a[sortColumn];
-          valB = b[sortColumn];
+          // Ensure string comparison for other sortable text fields
+          valA = String(a[sortColumn as keyof Omit<SignInSignOutRecord, 'timestamp'>]);
+          valB = String(b[sortColumn as keyof Omit<SignInSignOutRecord, 'timestamp'>]);
         }
 
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
+        // Fallback for non-string (like timestamp getTime())
         return sortDirection === 'asc' ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
       });
     }
@@ -188,7 +207,9 @@ export function HistoryTable() {
               filteredAndSortedHistory.map((record) => (
                 <TableRow key={record.id}>
                   <TableCell>{record.staffName}</TableCell>
-                  <TableCell>{new Date(record.timestamp).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <ClientSideFormattedTimestamp isoTimestamp={record.timestamp} />
+                  </TableCell>
                   <TableCell>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       record.type === 'signin' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
