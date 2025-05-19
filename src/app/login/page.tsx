@@ -36,18 +36,18 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl bg-card border-border">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <AppLogo iconSize={40} textSize="text-3xl" />
           </div>
-          <CardTitle className="text-2xl">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to access the Applaud dashboard.</CardDescription>
+          <CardTitle className="text-2xl text-card-foreground">Admin Login</CardTitle>
+          <CardDescription className="text-muted-foreground">Enter your credentials to access the Falcon T25 dashboard.</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-card-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -56,10 +56,11 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                className="bg-input text-foreground border-border placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-card-foreground">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -69,6 +70,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                 />
                 <Button
                   type="button"
@@ -86,7 +88,7 @@ export default function LoginPage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Login
             </Button>
