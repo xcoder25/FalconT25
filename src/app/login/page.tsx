@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,7 +26,7 @@ export default function LoginPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    if (email === 'admin@applaud.com' && password === 'password') {
+    if (email === 'xcoder2442@gmail.com' && password === '123456') {
       // In a real app, you'd set a session/token here
       router.push('/dashboard');
     } else {
@@ -51,7 +52,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@applaud.com"
+                placeholder="xcoder2442@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -65,7 +66,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="password"
+                  placeholder="●●●●●●"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -88,9 +89,18 @@ export default function LoginPage() {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Login
+            <Button 
+              type="submit" 
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out" 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <span className="transition-transform group-hover:scale-105 inline-block">
+                  Login
+                </span>
+              )}
             </Button>
           </CardFooter>
         </form>
