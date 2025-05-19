@@ -46,35 +46,39 @@ body {
   }
 
   .dark {
-    /* Define dark theme if necessary, for now keep as is from template or adjust based on new palette */
-    --background: 267 10% 10%;
-    --foreground: 276 60% 97%;
-    --card: 267 10% 12%;
-    --card-foreground: 276 60% 97%;
-    --popover: 267 10% 10%;
-    --popover-foreground: 276 60% 97%;
-    --primary: 267 36% 64%;
-    --primary-foreground: 267 25% 15%;
-    --secondary: 267 10% 20%;
-    --secondary-foreground: 276 60% 97%;
-    --muted: 267 10% 20%;
-    --muted-foreground: 276 30% 70%;
-    --accent: 345 33% 75%;
-    --accent-foreground: 345 40% 95%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 267 10% 25%;
-    --input: 267 10% 20%;
-    --ring: 267 36% 64%;
+    --background: 220 15% 12%;
+    --foreground: 220 20% 90%;
+    --card: 220 15% 18%;
+    --card-foreground: 220 20% 90%;
+    --popover: 220 15% 15%;
+    --popover-foreground: 220 20% 90%;
+    --primary: 200 80% 55%;
+    --primary-foreground: 220 15% 10%;
+    --secondary: 220 15% 25%;
+    --secondary-foreground: 220 20% 80%;
+    --muted: 220 15% 22%;
+    --muted-foreground: 220 15% 60%;
+    --accent: 180 70% 50%;
+    --accent-foreground: 220 15% 10%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 30%;
+    --input: 220 15% 20%;
+    --ring: 200 80% 60%;
+    --chart-1: 200 70% 50%; /* Primary Blue */
+    --chart-2: 180 60% 45%; /* Teal */
+    --chart-3: 260 60% 65%; /* Purple */
+    --chart-4: 30 80% 60%;  /* Orange */
+    --chart-5: 0 70% 60%;   /* Red */
 
-    --sidebar-background: 267 10% 15%;
-    --sidebar-foreground: 276 50% 90%;
-    --sidebar-primary: 267 36% 64%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 267 10% 25%;
-    --sidebar-accent-foreground: 276 50% 95%;
-    --sidebar-border: 267 10% 20%;
-    --sidebar-ring: 267 36% 58%;
+    --sidebar-background: 220 15% 15%;
+    --sidebar-foreground: 220 20% 85%;
+    --sidebar-primary: 200 80% 55%;
+    --sidebar-primary-foreground: 220 15% 10%;
+    --sidebar-accent: 220 15% 25%;
+    --sidebar-accent-foreground: 220 20% 95%;
+    --sidebar-border: 220 15% 25%;
+    --sidebar-ring: 200 80% 60%;
   }
 }
 
