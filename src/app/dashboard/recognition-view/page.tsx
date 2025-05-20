@@ -6,7 +6,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { CameraOff, Waves, Hand, Loader2, AlertTriangle } from 'lucide-react';
+import { CameraOff, Waves, Hand, Loader2, AlertTriangle, Siren } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MockDetection {
   id: string;
@@ -19,6 +20,8 @@ interface MockDetection {
   isUnrecognized?: boolean;
 }
 
+const UNRECOGNIZED_PERSON_ID = 'unrecognized1'; // ID for the specific unrecognized person
+
 export default function RecognitionViewPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -28,6 +31,11 @@ export default function RecognitionViewPage() {
 
   const [mockDetections, setMockDetections] = useState<MockDetection[]>([]);
   const [currentTime, setCurrentTime] = useState<string>('');
+
+  const [isMonitoringLingering, setIsMonitoringLingering] = useState<boolean>(false);
+  const [isIntruderAlertActive, setIsIntruderAlertActive] = useState<boolean>(false);
+  const intruderTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 
   useEffect(() => {
     const updateCurrentTime = () => {
@@ -39,11 +47,10 @@ export default function RecognitionViewPage() {
   }, []);
   
   useEffect(() => {
-    // Initialize mock detections with the current time
-    const initialTimestamp = new Date().toISOString(); // Use ISO string for consistency
+    const initialTimestamp = new Date().toISOString(); 
     setMockDetections([
       { id: 'person1', x: 15, y: 20, width: 30, height: 60, label: 'Person 1 (Alice)', timestamp: initialTimestamp },
-      { id: 'unrecognized1', x: 60, y: 10, width: 25, height: 50, label: 'Unrecognized', timestamp: initialTimestamp, isUnrecognized: true },
+      { id: UNRECOGNIZED_PERSON_ID, x: 60, y: 10, width: 25, height: 50, label: 'Unrecognized', timestamp: initialTimestamp, isUnrecognized: true },
       { id: 'person2', x: 55, y: 30, width: 25, height: 50, label: 'Person 2 (Bob)', timestamp: initialTimestamp },
     ]);
   }, []);
@@ -85,10 +92,12 @@ export default function RecognitionViewPage() {
     getCameraPermission();
 
     return () => {
-      // Cleanup: stop video stream when component unmounts
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
+      }
+      if (intruderTimerRef.current) {
+        clearTimeout(intruderTimerRef.current);
       }
     };
   }, [toast]);
@@ -101,12 +110,57 @@ export default function RecognitionViewPage() {
     });
   };
 
+  const handleSimulateLingering = () => {
+    if (isMonitoringLingering || isIntruderAlertActive) return;
+
+    setIsMonitoringLingering(true);
+    toast({
+      title: 'Monitoring Unrecognized Individual',
+      description: 'Simulating unrecognized person lingering near "Main Lobby Camera"...',
+      variant: 'default',
+    });
+
+    intruderTimerRef.current = setTimeout(() => {
+      setIsIntruderAlertActive(true);
+      setIsMonitoringLingering(false);
+      toast({
+        variant: 'destructive',
+        title: 'INTRUDER ALERT!',
+        description: 'Unrecognized person detected for an extended period at Main Lobby Camera. Security notified. Snapshot sent.',
+      });
+    }, 5000); // 5 seconds for demo
+  };
+
+  const dismissIntruderAlert = () => {
+    setIsIntruderAlertActive(false);
+    if (intruderTimerRef.current) {
+      clearTimeout(intruderTimerRef.current);
+    }
+    setIsMonitoringLingering(false); 
+    toast({
+        title: 'Intruder Alert Dismissed',
+        description: 'The visual alert has been cleared.',
+    });
+  };
+
+
   return (
     <div className="space-y-6 flex flex-col h-full">
       <PageHeader
         title="Live Recognition View"
-        description="Real-time camera feed with (simulated) detections and gesture recognition."
+        description="Real-time camera feed with (simulated) detections, gesture, and intruder alerts."
       />
+
+      {isIntruderAlertActive && (
+        <Alert variant="destructive" className="mb-4 animate-pulse">
+          <Siren className="h-5 w-5" />
+          <AlertTitle>INTRUDER ALERT!</AlertTitle>
+          <AlertDescription>
+            Unrecognized individual detected for an extended period. Authorities have been (simulated) notified.
+            <Button onClick={dismissIntruderAlert} variant="outline" size="sm" className="ml-4">Dismiss Alert</Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex-grow relative flex items-center justify-center bg-muted/30 rounded-lg overflow-hidden shadow-inner min-h-[400px] md:min-h-[500px]">
         {isCameraLoading && (
@@ -121,7 +175,7 @@ export default function RecognitionViewPage() {
           className="w-full h-full object-cover"
           autoPlay
           muted
-          playsInline // Important for iOS
+          playsInline 
         />
 
         {!isCameraLoading && hasCameraPermission === false && (
@@ -138,13 +192,14 @@ export default function RecognitionViewPage() {
 
         {hasCameraPermission && !isCameraLoading && (
           <div className="absolute inset-0 pointer-events-none">
-            {/* Mock Bounding Boxes & Labels */}
             {mockDetections.map((detection) => (
               <div
                 key={detection.id}
-                className={`absolute border-2 rounded shadow-lg pointer-events-auto ${
-                  detection.isUnrecognized ? 'border-destructive' : 'border-primary'
-                }`}
+                className={cn(
+                  `absolute border-2 rounded shadow-lg pointer-events-auto`,
+                  detection.isUnrecognized ? 'border-destructive' : 'border-primary',
+                  isIntruderAlertActive && detection.id === UNRECOGNIZED_PERSON_ID && 'flashing-border'
+                )}
                 style={{
                   left: `${detection.x}%`,
                   top: `${detection.y}%`,
@@ -152,9 +207,9 @@ export default function RecognitionViewPage() {
                   height: `${detection.height}%`,
                 }}
               >
-                <div className={`absolute -top-6 left-0 text-xs px-1.5 py-0.5 rounded-t whitespace-nowrap ${
+                <div className={cn(`absolute -top-6 left-0 text-xs px-1.5 py-0.5 rounded-t whitespace-nowrap`,
                   detection.isUnrecognized ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'
-                }`}>
+                )}>
                   {detection.isUnrecognized && <AlertTriangle className="h-3 w-3 inline mr-1" />}
                   {detection.label}
                 </div>
@@ -167,7 +222,7 @@ export default function RecognitionViewPage() {
         )}
       </div>
       
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border rounded-lg shadow-sm bg-card mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg shadow-sm bg-card mt-4">
         <div className="flex items-center gap-3">
           {isWaveDetected ? (
             <Waves className="h-8 w-8 text-green-500 animate-pulse" />
@@ -182,12 +237,38 @@ export default function RecognitionViewPage() {
               {isWaveDetected ? 'A gesture has been recognized.' : 'Monitoring for wave gestures.'}
             </p>
           </div>
+          <Button onClick={toggleWaveDetection} variant="outline" className="w-full sm:w-auto sm:ml-auto">
+            {isWaveDetected ? 'Simulate No Wave' : 'Simulate Wave Detection'}
+          </Button>
         </div>
-        <Button onClick={toggleWaveDetection} variant="outline" className="w-full sm:w-auto">
-          {isWaveDetected ? 'Simulate No Wave' : 'Simulate Wave Detection'}
-        </Button>
+
+        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4">
+           {isMonitoringLingering ? (
+             <Loader2 className="h-8 w-8 text-primary animate-spin" />
+           ) : isIntruderAlertActive ? (
+            <Siren className="h-8 w-8 text-destructive animate-pulse" />
+           ) : (
+             <Siren className="h-8 w-8 text-muted-foreground" />
+           )}
+          <div>
+            <p className={`text-lg font-semibold ${isIntruderAlertActive ? 'text-destructive' : 'text-foreground'}`}>
+              {isMonitoringLingering ? 'Monitoring...' : isIntruderAlertActive ? 'Intruder Alert!' : 'No Intruder Detected'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isMonitoringLingering ? 'Checking for extended presence.' : isIntruderAlertActive ? 'Unrecognized individual lingered.' : 'System is monitoring.'}
+            </p>
+          </div>
+           <Button 
+            onClick={isIntruderAlertActive ? dismissIntruderAlert : handleSimulateLingering} 
+            variant={isIntruderAlertActive ? "destructive" : "outline"} 
+            className="w-full sm:w-auto sm:ml-auto"
+            disabled={isMonitoringLingering}
+          >
+            {isMonitoringLingering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isIntruderAlertActive ? 'Dismiss Alert' : 'Simulate Lingering'}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
-
