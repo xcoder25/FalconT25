@@ -1,25 +1,26 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { StaffMember } from '@/lib/types';
-import { mockStaffMembers } from '@/lib/mockData';
+import { mockStaffMembers, mockRecognitions } from '@/lib/mockData'; // Import mockRecognitions
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award } from 'lucide-react'; // Added Award icon
 import Image from 'next/image';
 
 const staffFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
-  imageUrl: z.string().url('Invalid image URL.').optional().or(z.literal('')), // For simplicity, using URL for now. File upload is more complex.
+  imageUrl: z.string().url('Invalid image URL.').optional().or(z.literal('')),
   department: z.string().optional(),
 });
 
@@ -35,7 +36,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-
   const { toast } = useToast();
   const { control, handleSubmit, reset, setValue, watch } = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema),
@@ -43,6 +43,14 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   });
   
   const currentImageUrl = watch('imageUrl');
+
+  const recognitionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    mockRecognitions.forEach(recognition => {
+      counts[recognition.receiver.id] = (counts[recognition.receiver.id] || 0) + 1;
+    });
+    return counts;
+  }, []);
 
   const openModalForEdit = (staff: StaffMember) => {
     setEditingStaff(staff);
@@ -67,19 +75,17 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
 
   const onSubmit = async (data: StaffFormValues) => {
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
 
     if (editingStaff) {
-      // Edit existing staff
       setStaffList(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...data, imageUrl: data.imageUrl || s.imageUrl } : s));
       toast({ title: 'Staff Updated', description: `${data.name} has been updated.` });
     } else {
-      // Add new staff
       const newStaff: StaffMember = {
-        id: `staff${staffList.length + 1 + Math.random()}`, // simple unique ID
+        id: `staff${staffList.length + 1 + Math.random()}`,
         ...data,
         imageUrl: data.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}`,
-        status: 'active', // Default status for new staff
+        status: 'active', 
       };
       setStaffList(prev => [newStaff, ...prev]);
       toast({ title: 'Staff Added', description: `${data.name} has been added.` });
@@ -89,9 +95,8 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   };
 
   const handleDeleteStaff = async (staffId: string) => {
-    // Simulate confirmation and API call
     if (window.confirm('Are you sure you want to delete this staff member?')) {
-      setIsSubmitting(true); // Use submitting state for delete as well
+      setIsSubmitting(true); 
       await new Promise(resolve => setTimeout(resolve, 500));
       setStaffList(prev => prev.filter(s => s.id !== staffId));
       toast({ title: 'Staff Deleted', description: 'The staff member has been removed.', variant: 'destructive' });
@@ -106,7 +111,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       reader.onloadend = () => {
         const result = reader.result as string;
         setPreviewImage(result);
-        setValue('imageUrl', result, { shouldValidate: true }); // Store as base64 or upload and get URL
+        setValue('imageUrl', result, { shouldValidate: true }); 
       };
       reader.readAsDataURL(file);
     } else {
@@ -115,12 +120,14 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     }
   };
 
-
   const filteredStaff = staffList.filter(staff => 
     staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (staff.department && staff.department.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  ).map(staff => ({
+    ...staff,
+    recognitionsReceived: recognitionCounts[staff.id] || 0,
+  }));
 
   return (
     <div className="space-y-4">
@@ -145,6 +152,11 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
               <TableHead>Email</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center">
+                  <Award size={16} className="mr-1"/> Recognitions
+                </div>
+              </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -163,12 +175,15 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 <TableCell>{staff.department || 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    staff.status === 'recognized' ? 'bg-green-100 text-green-700' :
-                    staff.status === 'unknown' ? 'bg-red-100 text-red-700' :
-                    'bg-blue-100 text-blue-700'
+                    staff.status === 'recognized' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : // Added dark mode classes
+                    staff.status === 'unknown' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : // Added dark mode classes
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' // Added dark mode classes
                   }`}>
                     {staff.status.charAt(0).toUpperCase() + staff.status.slice(1)}
                   </span>
+                </TableCell>
+                <TableCell className="text-center font-medium">
+                  {staff.recognitionsReceived}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button variant="outline" size="icon" onClick={() => openModalForEdit(staff)} disabled={isSubmitting}>
@@ -184,7 +199,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
             ))
             ) : (
                <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground"> 
                   No staff members found.
                 </TableCell>
               </TableRow>
@@ -287,3 +302,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     </div>
   );
 }
+
+
+    
