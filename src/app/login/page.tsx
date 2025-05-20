@@ -1,18 +1,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppLogo } from '@/components/shared/AppLogo';
-import { Eye, EyeOff, Loader2, UploadCloud, Building, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Loader2, UploadCloud, Building, UserPlus, Mic, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const loginFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -24,13 +25,14 @@ const setupFormSchema = z.object({
   orgName: z.string().min(2, 'Organization name must be at least 2 characters.'),
   orgEmail: z.string().email('Invalid organization email.'),
   orgPhone: z.string().min(10, 'Please enter a valid phone number.').regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format."),
-  companyLogo: z.any().optional(), // For file input, Zod validation is complex client-side without libraries
+  companyLogo: z.any().optional(), 
   adminFullName: z.string().min(2, 'Admin full name is required.'),
   adminEmail: z.string().email('Invalid admin email address.'),
   adminPassword: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 type SetupFormValues = z.infer<typeof setupFormSchema>;
 
+type VoiceLoginStatus = 'idle' | 'prompting' | 'denied' | 'recording' | 'authenticating' | 'success' | 'error';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,9 +45,11 @@ export default function LoginPage() {
   const [setupError, setSetupError] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [logoFileName, setLogoFileName] = useState<string | null>(null);
-
-  // Simulate if organization is already set up. In a real app, this would come from a backend.
   const [isOrgSetup, setIsOrgSetup] = useState(false); 
+
+  const [voiceLoginStatus, setVoiceLoginStatus] = useState<VoiceLoginStatus>('idle');
+  const [voiceLoginMessage, setVoiceLoginMessage] = useState('');
+
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -81,20 +85,17 @@ export default function LoginPage() {
   const handleSetup = async (data: SetupFormValues) => {
     setIsSetupLoading(true);
     setSetupError('');
-    console.log('Setup Data:', data); // Log data including logo file
-    // Simulate API call for setup
+    console.log('Setup Data:', data); 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Simulate success
     toast({
       title: 'Setup Successful!',
       description: `${data.orgName} has been registered. Please login with your new admin account.`,
     });
-    setIsOrgSetup(true); // Hide setup form and show only login
+    setIsOrgSetup(true); 
     setIsSetupLoading(false);
     setupForm.reset();
     setLogoFileName(null);
-    // Optionally pre-fill login form with new admin email
     loginForm.setValue('email', data.adminEmail);
   };
 
@@ -102,17 +103,61 @@ export default function LoginPage() {
     const file = event.target.files?.[0];
     if (file) {
       setLogoFileName(file.name);
-      setupForm.setValue('companyLogo', file); // Store file object in form state
+      setupForm.setValue('companyLogo', file); 
     } else {
       setLogoFileName(null);
       setupForm.setValue('companyLogo', undefined);
     }
   };
 
+  const handleVoiceLogin = async () => {
+    setVoiceLoginStatus('prompting');
+    setVoiceLoginMessage('Requesting microphone access...');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setVoiceLoginStatus('error');
+      setVoiceLoginMessage('Voice login not supported by your browser.');
+      toast({ variant: 'destructive', title: 'Browser Not Supported', description: 'Your browser does not support microphone access for voice login.' });
+      return;
+    }
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Permission granted
+      setVoiceLoginStatus('recording');
+      setVoiceLoginMessage('Please say your login phrase...');
+      
+      // Simulate recording
+      await new Promise(resolve => setTimeout(resolve, 3000)); 
+      
+      setVoiceLoginStatus('authenticating');
+      setVoiceLoginMessage('Authenticating your voice...');
+
+      // Simulate authentication
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Simulate success for demo
+      setVoiceLoginStatus('success');
+      setVoiceLoginMessage('Voice recognized! Logging in...');
+      toast({ title: 'Voice Login Successful!', description: 'Redirecting to dashboard...' });
+      router.push('/dashboard');
+
+    } catch (err) {
+      console.error('Voice login error:', err);
+      setVoiceLoginStatus('denied');
+      setVoiceLoginMessage('Microphone access denied. Please enable it and try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Microphone Access Denied',
+        description: 'Please enable microphone permissions in your browser settings for voice login.',
+      });
+    }
+  };
+
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-secondary p-4 overflow-hidden">
       <div className={`grid w-full ${isOrgSetup ? 'max-w-md justify-items-center' : 'max-w-5xl grid-cols-1 lg:grid-cols-2 gap-8'}`}>
-        {/* Admin Login Card */}
         <Card className={`w-full ${isOrgSetup ? 'mx-auto animate-in slide-in-from-bottom-12 duration-700 ease-out' : 'animate-in slide-in-from-left-12 duration-700 ease-out'}`}>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
@@ -132,7 +177,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="xcoder2442@gmail.com"
                   {...loginForm.register('email')}
-                  disabled={isLoginLoading}
+                  disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
                   className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                 />
                 {loginForm.formState.errors.email && <p className="text-sm text-destructive">{loginForm.formState.errors.email.message}</p>}
@@ -145,7 +190,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="●●●●●●"
                     {...loginForm.register('password')}
-                    disabled={isLoginLoading}
+                    disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
                     className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                   />
                   <Button
@@ -164,11 +209,11 @@ export default function LoginPage() {
               </div>
               {loginError && <p className="text-sm text-destructive">{loginError}</p>}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-3">
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out"
-                disabled={isLoginLoading}
+                disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
               >
                 {isLoginLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -176,11 +221,40 @@ export default function LoginPage() {
                   <span className="transition-transform group-hover:scale-105 inline-block">Login</span>
                 )}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full group"
+                onClick={handleVoiceLogin}
+                disabled={isLoginLoading || (voiceLoginStatus !== 'idle' && voiceLoginStatus !== 'denied' && voiceLoginStatus !== 'error')}
+              >
+                {voiceLoginStatus === 'prompting' || voiceLoginStatus === 'recording' || voiceLoginStatus === 'authenticating' ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                ) : (
+                  <Mic className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                )}
+                Sign in with Voice
+              </Button>
             </CardFooter>
           </form>
+          {voiceLoginStatus !== 'idle' && (
+            <div className={cn("p-4 text-center text-sm", {
+              'text-muted-foreground': voiceLoginStatus === 'prompting' || voiceLoginStatus === 'recording' || voiceLoginStatus === 'authenticating',
+              'text-green-500': voiceLoginStatus === 'success',
+              'text-destructive': voiceLoginStatus === 'error' || voiceLoginStatus === 'denied',
+            })}>
+              <div className="flex items-center justify-center gap-2">
+                {voiceLoginStatus === 'prompting' && <Loader2 className="animate-spin h-4 w-4" />}
+                {voiceLoginStatus === 'recording' && <Mic className="animate-pulse text-red-500 h-4 w-4" />}
+                {voiceLoginStatus === 'authenticating' && <Loader2 className="animate-spin h-4 w-4" />}
+                {voiceLoginStatus === 'success' && <CheckCircle2 className="h-4 w-4" />}
+                {(voiceLoginStatus === 'error' || voiceLoginStatus === 'denied') && <AlertTriangle className="h-4 w-4" />}
+                <span>{voiceLoginMessage}</span>
+              </div>
+            </div>
+          )}
         </Card>
 
-        {/* First-Time Setup Card - Conditionally Rendered */}
         {!isOrgSetup && (
           <Card className="w-full animate-in slide-in-from-right-12 duration-700 ease-out">
             <CardHeader>
@@ -216,7 +290,6 @@ export default function LoginPage() {
                   <Button type="button" variant="outline" onClick={() => document.getElementById('companyLogo-hidden')?.click()} disabled={isSetupLoading} className="w-full justify-start">
                     <UploadCloud className="mr-2 h-4 w-4" /> {logoFileName || "Upload Logo"}
                   </Button>
-                  {/* No direct Zod error for file input here, handled by file state */}
                 </div>
 
                 <hr className="my-6 border-border" />
@@ -254,6 +327,9 @@ export default function LoginPage() {
                   </div>
                   {setupForm.formState.errors.adminPassword && <p className="text-sm text-destructive">{setupForm.formState.errors.adminPassword.message}</p>}
                 </div>
+                <div className="text-sm text-muted-foreground mt-2">
+                  Optional: <Button variant="link" className="p-0 h-auto text-primary" onClick={() => toast({title: "Voice Setup", description: "Voice setup would be initiated here."})}>Set up Voice Login</Button> (mock link)
+                </div>
                 {setupError && <p className="text-sm text-destructive">{setupError}</p>}
               </CardContent>
               <CardFooter>
@@ -268,5 +344,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

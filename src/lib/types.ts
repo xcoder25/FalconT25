@@ -91,3 +91,4 @@ export interface AuditLogEntry {
   ipAddress?: string; // Optional: IP address of the user
   targetId?: string; // Optional: ID of the entity being affected (e.g., staff ID)
 }
+

@@ -41,6 +41,7 @@ import {
   ShieldAlert,
   ClipboardList,
   LayoutGrid,
+  Shield, // Added Shield icon
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,6 +72,7 @@ const navItems: NavigationItem[] = [
       { href: '/dashboard/settings/cameras', label: 'Cameras', icon: CameraIcon },
       { href: '/dashboard/settings/storage', label: 'Cloud Storage', icon: Cloud },
       { href: '/dashboard/settings/integrations', label: 'Integrations', icon: Link2 },
+      { href: '/dashboard/settings/security', label: 'Security', icon: Shield },
       { href: '/dashboard/settings/roles', label: 'Roles & Permissions', icon: KeyRound },
       { href: '/dashboard/settings/privacy', label: 'Privacy & Compliance', icon: ShieldAlert },
     ],
