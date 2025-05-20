@@ -35,8 +35,11 @@ import {
   ChevronDown,
   ChevronUp,
   ScanFace,
-  Cloud, // Added Cloud icon
-  Link2, // Added Link2 icon
+  Cloud, 
+  Link2, 
+  KeyRound, // Added KeyRound icon
+  ShieldAlert, // Added ShieldAlert icon
+  ClipboardList, // Added ClipboardList icon
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,6 +57,7 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard/nominate', label: 'Nominate Colleague', icon: Gift },
   { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace },
   { href: '/dashboard/history', label: 'Attendance Logs', icon: History },
+  { href: '/dashboard/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
   { href: '/dashboard/payroll', label: 'Payroll', icon: CreditCard },
   {
@@ -65,6 +69,8 @@ const navItems: NavigationItem[] = [
       { href: '/dashboard/settings/cameras', label: 'Cameras', icon: CameraIcon },
       { href: '/dashboard/settings/storage', label: 'Cloud Storage', icon: Cloud },
       { href: '/dashboard/settings/integrations', label: 'Integrations', icon: Link2 },
+      { href: '/dashboard/settings/roles', label: 'Roles & Permissions', icon: KeyRound },
+      { href: '/dashboard/settings/privacy', label: 'Privacy & Compliance', icon: ShieldAlert },
     ],
   },
 ];

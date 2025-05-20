@@ -80,3 +80,14 @@ export interface NavigationItem {
   active?: boolean; // Optional: for highlighting active link
   children?: NavigationItem[]; // For nested menus like Settings
 }
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // ISO date string
+  userId: string; // ID of the user performing the action
+  userName: string; // Name of the user
+  action: string; // e.g., "USER_LOGIN", "STAFF_UPDATED", "SETTINGS_CHANGED"
+  details: string; // More specific details about the action
+  ipAddress?: string; // Optional: IP address of the user
+  targetId?: string; // Optional: ID of the entity being affected (e.g., staff ID)
+}

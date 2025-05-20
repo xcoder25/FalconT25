@@ -1,5 +1,5 @@
 
-import type { User, Recognition, RecognitionValue, StaffMember, SignInSignOutRecord, Camera, AppNotification } from './types';
+import type { User, Recognition, RecognitionValue, StaffMember, SignInSignOutRecord, Camera, AppNotification, AuditLogEntry } from './types';
 
 // Ensure some User IDs overlap with StaffMember IDs for linking recognitions
 export const mockUsers: User[] = [
@@ -11,6 +11,7 @@ export const mockUsers: User[] = [
   { id: 'staff1', name: 'Eve Adamson', avatarUrl: 'https://placehold.co/100x100.png?text=EA', email: 'eve@example.com' },
   { id: 'staff3', name: 'Grace Hopper', avatarUrl: 'https://placehold.co/100x100.png?text=GH', email: 'grace@example.com' },
   { id: 'staff4', name: 'Harry Potter', avatarUrl: 'https://placehold.co/100x100.png?text=HP', email: 'harry@example.com' },
+  { id: 'adminUser', name: 'Admin User', avatarUrl: 'https://placehold.co/100x100.png?text=AU', email: 'xcoder2442@gmail.com' }
 ];
 
 
@@ -122,4 +123,58 @@ export const mockNotifications: AppNotification[] = [
   { id: 'notif1', title: 'New Recognition!', message: 'Eve Adamson received a recognition for Team Player.', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), read: false, type: 'recognition' },
   { id: 'notif2', title: 'Camera Offline', message: 'Lab Cam 1 is currently offline. Please check connection.', timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), read: false, type: 'warning' },
   { id: 'notif3', title: 'System Update', message: 'Applaud system will undergo maintenance tonight at 2 AM.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), read: true, type: 'info' },
+];
+
+const adminUser = mockUsers.find(u => u.id === 'adminUser')!;
+const aliceUser = mockUsers.find(u => u.id === 'user1')!;
+
+export const mockAuditLogEntries: AuditLogEntry[] = [
+  {
+    id: 'audit1',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    userId: adminUser.id,
+    userName: adminUser.name,
+    action: 'USER_LOGIN',
+    details: 'Admin logged in successfully.',
+    ipAddress: '192.168.1.100',
+  },
+  {
+    id: 'audit2',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    userId: adminUser.id,
+    userName: adminUser.name,
+    action: 'STAFF_ADDED',
+    details: `Staff member "Harry Potter" (ID: staff4) was added to the system.`,
+    targetId: 'staff4',
+    ipAddress: '192.168.1.100',
+  },
+  {
+    id: 'audit3',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    userId: aliceUser.id,
+    userName: aliceUser.name,
+    action: 'RECOGNITION_GIVEN',
+    details: `Alice Wonderland recognized Eve Adamson for "Team Player".`,
+    targetId: 'rec1',
+    ipAddress: '203.0.113.45',
+  },
+  {
+    id: 'audit4',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    userId: adminUser.id,
+    userName: adminUser.name,
+    action: 'SETTINGS_UPDATED',
+    details: 'Notification preferences for email were changed.',
+    ipAddress: '192.168.1.100',
+  },
+  {
+    id: 'audit5',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+    userId: adminUser.id,
+    userName: adminUser.name,
+    action: 'CAMERA_STATUS_CHANGED',
+    details: 'Camera "Lab Cam 1" status changed to offline.',
+    targetId: 'cam2',
+    ipAddress: '192.168.1.100',
+  },
 ];
