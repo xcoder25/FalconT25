@@ -40,7 +40,7 @@ import {
   KeyRound,
   ShieldAlert,
   ClipboardList,
-  LayoutGrid, // Added LayoutGrid icon
+  LayoutGrid,
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -57,7 +57,7 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard/recognition-feed', label: 'Recognition Feed', icon: Award },
   { href: '/dashboard/nominate', label: 'Nominate Colleague', icon: Gift },
   { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace },
-  { href: '/dashboard/multi-camera-feed', label: 'Multi-Camera Feed', icon: LayoutGrid }, // Added new page
+  { href: '/dashboard/multi-camera-feed', label: 'Multi-Camera Feed', icon: LayoutGrid },
   { href: '/dashboard/history', label: 'Attendance Logs', icon: History },
   { href: '/dashboard/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
@@ -170,9 +170,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4 md:hidden">
-            <SidebarTrigger />
-            <AppLogo className="md:hidden" showIcon={false} textSize="text-xl" />
+        {/* Persistent Header for all screen sizes */}
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            {/* SidebarTrigger for mobile, to open the sheet-style sidebar */}
+            <SidebarTrigger className="md:hidden" />
+            {/* You can add breadcrumbs or dynamic page titles here in the future */}
+          </div>
+          <div>
+            {/* AppLogo (Falcon T25) will be displayed on the right */}
+            <AppLogo showIcon={true} iconSize={28} textSize="text-xl" />
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
             {children}
