@@ -30,6 +30,7 @@ import {
   Settings,
   Bell,
   Camera as CameraIcon, 
+  CreditCard, // Added CreditCard icon for Payroll
   LogOut,
   ChevronDown,
   ChevronUp,
@@ -52,6 +53,7 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace },
   { href: '/dashboard/history', label: 'Attendance Logs', icon: History }, // Updated Label
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
+  { href: '/dashboard/payroll', label: 'Payroll', icon: CreditCard }, // Added Payroll
   {
     href: '/dashboard/settings', 
     label: 'Settings',
