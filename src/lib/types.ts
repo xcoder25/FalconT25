@@ -1,4 +1,5 @@
 
+
 export interface User {
   id: string;
   name: string;
@@ -79,4 +80,3 @@ export interface NavigationItem {
   active?: boolean; // Optional: for highlighting active link
   children?: NavigationItem[]; // For nested menus like Settings
 }
-

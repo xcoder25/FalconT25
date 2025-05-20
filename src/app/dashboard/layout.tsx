@@ -25,16 +25,18 @@ import {
   LayoutDashboard,
   Award,
   Gift,
-  History, // Keeping History icon for Attendance Logs
+  History, 
   Users,
   Settings,
   Bell,
   Camera as CameraIcon, 
-  CreditCard, // Added CreditCard icon for Payroll
+  CreditCard, 
   LogOut,
   ChevronDown,
   ChevronUp,
   ScanFace,
+  Cloud, // Added Cloud icon
+  Link2, // Added Link2 icon
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,9 +53,9 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard/recognition-feed', label: 'Recognition Feed', icon: Award },
   { href: '/dashboard/nominate', label: 'Nominate Colleague', icon: Gift },
   { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace },
-  { href: '/dashboard/history', label: 'Attendance Logs', icon: History }, // Updated Label
+  { href: '/dashboard/history', label: 'Attendance Logs', icon: History },
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
-  { href: '/dashboard/payroll', label: 'Payroll', icon: CreditCard }, // Added Payroll
+  { href: '/dashboard/payroll', label: 'Payroll', icon: CreditCard },
   {
     href: '/dashboard/settings', 
     label: 'Settings',
@@ -61,6 +63,8 @@ const navItems: NavigationItem[] = [
     children: [
       { href: '/dashboard/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/dashboard/settings/cameras', label: 'Cameras', icon: CameraIcon },
+      { href: '/dashboard/settings/storage', label: 'Cloud Storage', icon: Cloud },
+      { href: '/dashboard/settings/integrations', label: 'Integrations', icon: Link2 },
     ],
   },
 ];
