@@ -104,6 +104,7 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
   };
 
   React.useEffect(() => {
+    // This effect runs when the route has changed
     setIsLoading(false);
   }, [pathname, setIsLoading]);
 
@@ -116,7 +117,7 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           {isMobile ? (
-            <SheetTitle asChild>
+            <SheetTitle> 
               <AppLogo />
             </SheetTitle>
           ) : (
