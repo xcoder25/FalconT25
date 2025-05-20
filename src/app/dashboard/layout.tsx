@@ -2,7 +2,6 @@
 'use client';
 
 import React from 'react';
-// Link component is no longer directly used for navigation items that need the loading overlay
 import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -18,6 +17,7 @@ import {
   SidebarMenuSubItem,
   SidebarTrigger,
   SidebarInset,
+  useSidebar, // Import useSidebar
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Button } from '@/components/ui/button';
@@ -72,20 +72,22 @@ const navItems: NavigationItem[] = [
     children: [
       { href: '/dashboard/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/dashboard/settings/cameras', label: 'Cameras', icon: CameraIcon },
+      { href: '/dashboard/settings/security', label: 'Security', icon: Shield },
       { href: '/dashboard/settings/storage', label: 'Cloud Storage', icon: Cloud },
       { href: '/dashboard/settings/integrations', label: 'Integrations', icon: Link2 },
-      { href: '/dashboard/settings/security', label: 'Security', icon: Shield },
       { href: '/dashboard/settings/roles', label: 'Roles & Permissions', icon: KeyRound },
       { href: '/dashboard/settings/privacy', label: 'Privacy & Compliance', icon: ShieldAlert },
     ],
   },
 ];
 
-function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+// New inner component that consumes SidebarContext
+function MyDashboardUI({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [openSettings, setOpenSettings] = React.useState(isSettingsPathActive(pathname));
   const { setIsLoading } = useLoading();
+  const { isMobile } = useSidebar(); // Consuming context here
 
   function isSettingsPathActive(currentPath: string) {
     return navItems.find(item => item.label === 'Settings')?.children?.some(child => currentPath.startsWith(child.href)) || false;
@@ -96,32 +98,30 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   const handleNavigation = (href: string) => {
-    if (pathname === href) return; // Don't trigger for same page
-
+    if (pathname === href) return;
     setIsLoading(true);
     router.push(href);
-    // setIsLoading(false) will be handled by the useEffect below, listening to pathname changes.
   };
 
   React.useEffect(() => {
-    // When the pathname changes (i.e., navigation is complete and new page is rendering),
-    // set isLoading to false.
     setIsLoading(false);
   }, [pathname, setIsLoading]);
 
-
   const handleLogout = () => {
-    // Logout doesn't use the loading overlay, direct push
     router.push('/login');
   };
 
   return (
-    <SidebarProvider defaultOpen>
+    <>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <SheetTitle asChild>
+          {isMobile ? (
+            <SheetTitle asChild>
+              <AppLogo />
+            </SheetTitle>
+          ) : (
             <AppLogo />
-          </SheetTitle>
+          )}
         </SidebarHeader>
         <SidebarContent asChild>
           <ScrollArea className="flex-1">
@@ -203,16 +203,23 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             {children}
         </main>
       </SidebarInset>
-      <LoadingOverlay /> {/* Render LoadingOverlay here */}
-    </SidebarProvider>
+      <LoadingOverlay />
+    </>
   );
 }
 
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider defaultOpen>
+      <MyDashboardUI>{children}</MyDashboardUI>
+    </SidebarProvider>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <LoadingProvider>
       <DashboardLayoutContent>{children}</DashboardLayoutContent>
     </LoadingProvider>
-  )
+  );
 }
