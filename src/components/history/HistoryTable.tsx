@@ -14,7 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const ALL_CAMERAS_VALUE = "__ALL_CAMERAS__";
@@ -285,3 +284,4 @@ export function HistoryTable() {
     </div>
   );
 }
+

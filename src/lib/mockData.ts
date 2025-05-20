@@ -1,3 +1,4 @@
+
 import type { User, Recognition, RecognitionValue, StaffMember, SignInSignOutRecord, Camera, AppNotification } from './types';
 
 export const mockUsers: User[] = [
@@ -67,11 +68,11 @@ export const mockStaffMembers: StaffMember[] = [
 ];
 
 export const mockSignInSignOutHistory: SignInSignOutRecord[] = [
-  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Front Entrance Cam' },
+  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
   { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 28).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face' },
-  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), type: 'signin', camera: 'Lab Cam 1' },
-  { id: 'hist3', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), type: 'signout', camera: 'Front Entrance Cam' },
-  { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A' },
+  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), type: 'signin', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
+  { id: 'hist3', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), type: 'signout', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
+  { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A', snapshotImageUrl: 'https://placehold.co/80x80.png?text=HP' },
 ];
 
 export const mockCameras: Camera[] = [
@@ -88,3 +89,4 @@ export const mockNotifications: AppNotification[] = [
   { id: 'notif2', title: 'Camera Offline', message: 'Lab Cam 1 is currently offline. Please check connection.', timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), read: false, type: 'warning' },
   { id: 'notif3', title: 'System Update', message: 'Applaud system will undergo maintenance tonight at 2 AM.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), read: true, type: 'info' },
 ];
+

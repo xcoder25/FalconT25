@@ -79,3 +79,4 @@ export interface NavigationItem {
   active?: boolean; // Optional: for highlighting active link
   children?: NavigationItem[]; // For nested menus like Settings
 }
+
