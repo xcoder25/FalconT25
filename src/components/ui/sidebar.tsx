@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent as SheetPrimitiveContent } from "@/components/ui/sheet" // Renamed SheetContent to avoid conflict
+import { Sheet, SheetContent } from "@/components/ui/sheet" // Changed from SheetPrimitiveContent
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -196,10 +196,10 @@ const Sidebar = React.forwardRef<
     if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-          <SheetPrimitiveContent 
+          <SheetContent 
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground flex flex-col" // Use composed SheetContent, added flex flex-col and p-0
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -207,8 +207,8 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
-          </SheetPrimitiveContent>
+            {children} {/* Pass children (SidebarHeader, SidebarContent, SidebarFooter) directly */}
+          </SheetContent>
         </Sheet>
       )
     }
@@ -359,7 +359,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2", className)} // Note: Padding is managed here, or SheetContent default p-6 can be used
       {...props}
     />
   )
@@ -374,7 +374,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)}
+      className={cn("flex flex-col gap-2 p-2", className)} // Note: Padding is managed here
       {...props}
     />
   )
@@ -406,7 +406,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden", // Note: Padding is managed by children or parent SheetContent
         className
       )}
       {...props}
