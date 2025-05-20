@@ -37,9 +37,10 @@ import {
   ScanFace,
   Cloud, 
   Link2, 
-  KeyRound, // Added KeyRound icon
-  ShieldAlert, // Added ShieldAlert icon
-  ClipboardList, // Added ClipboardList icon
+  KeyRound,
+  ShieldAlert,
+  ClipboardList,
+  LayoutGrid, // Added LayoutGrid icon
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,6 +57,7 @@ const navItems: NavigationItem[] = [
   { href: '/dashboard/recognition-feed', label: 'Recognition Feed', icon: Award },
   { href: '/dashboard/nominate', label: 'Nominate Colleague', icon: Gift },
   { href: '/dashboard/recognition-view', label: 'Recognition View', icon: ScanFace },
+  { href: '/dashboard/multi-camera-feed', label: 'Multi-Camera Feed', icon: LayoutGrid }, // Added new page
   { href: '/dashboard/history', label: 'Attendance Logs', icon: History },
   { href: '/dashboard/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { href: '/dashboard/manage-staff', label: 'Manage Staff', icon: Users },
