@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/accordion"
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; // Import LoadingProvider and useLoading
 import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; // Import LoadingOverlay
+import { SheetTitle } from '@/components/ui/sheet'; // Import SheetTitle
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -119,7 +120,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen>
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <AppLogo />
+          <SheetTitle asChild>
+            <AppLogo />
+          </SheetTitle>
         </SidebarHeader>
         <SidebarContent asChild>
           <ScrollArea className="flex-1">
