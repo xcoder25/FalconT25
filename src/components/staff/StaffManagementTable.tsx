@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { StaffMember } from '@/lib/types';
-import { mockStaffMembers, mockRecognitions } from '@/lib/mockData'; // Import mockRecognitions
+import type { StaffMember, Recognition } from '@/lib/types';
+import { mockStaffMembers, mockRecognitions } from '@/lib/mockData'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,8 +14,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award } from 'lucide-react'; // Added Award icon
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
+import { generatePerformanceHighlights, GeneratePerformanceHighlightsInput, GeneratePerformanceHighlightsOutput } from '@/ai/flows/generate-performance-highlights';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const staffFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -35,6 +37,12 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [isHighlightsModalOpen, setIsHighlightsModalOpen] = useState(false);
+  const [currentStaffForHighlights, setCurrentStaffForHighlights] = useState<StaffMember | null>(null);
+  const [highlights, setHighlights] = useState<string[]>([]);
+  const [isFetchingHighlights, setIsFetchingHighlights] = useState(false);
+  const [highlightsError, setHighlightsError] = useState<string | null>(null);
 
   const { toast } = useToast();
   const { control, handleSubmit, reset, setValue, watch } = useForm<StaffFormValues>({
@@ -120,6 +128,45 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     }
   };
 
+  const handleShowHighlights = async (staff: StaffMember) => {
+    setCurrentStaffForHighlights(staff);
+    setIsHighlightsModalOpen(true);
+    setIsFetchingHighlights(true);
+    setHighlightsError(null);
+    setHighlights([]);
+
+    try {
+      const staffRecognitions = mockRecognitions.filter(rec => rec.receiver.id === staff.id);
+      if (staffRecognitions.length === 0) {
+        setHighlights(["This staff member has not received any recognitions yet."]);
+        setIsFetchingHighlights(false);
+        return;
+      }
+
+      const recognitionDetails = staffRecognitions.map(rec => 
+        `Recognized for "${rec.value || 'General Excellence'}": ${rec.reason}${rec.message ? ' Personal note: ' + rec.message : ''}`
+      );
+      
+      const input: GeneratePerformanceHighlightsInput = {
+        staffName: staff.name,
+        recognitionDetails: recognitionDetails,
+      };
+      const result: GeneratePerformanceHighlightsOutput = await generatePerformanceHighlights(input);
+      setHighlights(result.highlights);
+    } catch (error) {
+      console.error("Error fetching AI highlights:", error);
+      setHighlightsError("Failed to generate performance highlights. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "AI Highlights Error",
+        description: "Could not generate performance highlights at this time.",
+      });
+    } finally {
+      setIsFetchingHighlights(false);
+    }
+  };
+
+
   const filteredStaff = staffList.filter(staff => 
     staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,9 +222,9 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 <TableCell>{staff.department || 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    staff.status === 'recognized' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : // Added dark mode classes
-                    staff.status === 'unknown' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : // Added dark mode classes
-                    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' // Added dark mode classes
+                    staff.status === 'recognized' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 
+                    staff.status === 'unknown' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
                   }`}>
                     {staff.status.charAt(0).toUpperCase() + staff.status.slice(1)}
                   </span>
@@ -185,7 +232,10 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 <TableCell className="text-center font-medium">
                   {staff.recognitionsReceived}
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-right space-x-1">
+                  <Button variant="outline" size="xs" onClick={() => handleShowHighlights(staff)} disabled={isSubmitting || isFetchingHighlights}>
+                    <Sparkles className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">AI Highlights</span>
+                  </Button>
                   <Button variant="outline" size="icon" onClick={() => openModalForEdit(staff)} disabled={isSubmitting}>
                     <Edit3 className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
@@ -208,6 +258,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </Table>
       </div>
 
+      {/* Add/Edit Staff Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -299,9 +350,50 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* AI Performance Highlights Dialog */}
+      <Dialog open={isHighlightsModalOpen} onOpenChange={setIsHighlightsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Sparkles className="w-5 h-5 mr-2 text-primary" />
+              AI Performance Highlights
+            </DialogTitle>
+            <DialogDescription>
+              For: {currentStaffForHighlights?.name || 'Staff Member'}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] py-4">
+            {isFetchingHighlights && (
+              <div className="flex items-center justify-center space-x-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-muted-foreground">Generating highlights...</p>
+              </div>
+            )}
+            {highlightsError && (
+              <div className="text-destructive flex items-center gap-2">
+                <AlertTriangle size={18} /> 
+                <p>{highlightsError}</p>
+              </div>
+            )}
+            {!isFetchingHighlights && !highlightsError && highlights.length > 0 && (
+              <ul className="space-y-2 list-disc pl-5 text-sm">
+                {highlights.map((highlight, index) => (
+                  <li key={index}>{highlight}</li>
+                ))}
+              </ul>
+            )}
+             {!isFetchingHighlights && !highlightsError && highlights.length === 0 && currentStaffForHighlights && (
+                 <p className="text-muted-foreground text-sm">No specific highlights could be generated. This staff member may have no recognitions or recognitions may lack detail.</p>
+             )}
+          </ScrollArea>
+          <DialogFooter className="pt-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={() => setIsHighlightsModalOpen(false)}>Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-
-    
