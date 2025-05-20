@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+// Link component is no longer directly used for navigation items that need the loading overlay
 import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -41,7 +41,7 @@ import {
   ShieldAlert,
   ClipboardList,
   LayoutGrid,
-  Shield, // Added Shield icon
+  Shield,
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,7 +51,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-
+import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; // Import LoadingProvider and useLoading
+import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; // Import LoadingOverlay
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -79,10 +80,11 @@ const navItems: NavigationItem[] = [
   },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [openSettings, setOpenSettings] = React.useState(isSettingsPathActive(pathname));
+  const { setIsLoading } = useLoading();
 
   function isSettingsPathActive(currentPath: string) {
     return navItems.find(item => item.label === 'Settings')?.children?.some(child => currentPath.startsWith(child.href)) || false;
@@ -92,7 +94,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setOpenSettings(isSettingsPathActive(pathname));
   }, [pathname]);
 
+  const handleNavigation = (href: string) => {
+    if (pathname === href) return; // Don't trigger for same page
+
+    setIsLoading(true);
+    setTimeout(() => {
+      router.push(href);
+      // It's good practice to turn off loading after navigation attempt,
+      // though page load will naturally hide it.
+      // For SPA-like feel, you might set isLoading(false) in a useEffect listening to pathname changes.
+      // For this 3s delay, we'll let the page load handle it.
+      // However, if navigation fails or is very fast, this might need adjustment.
+      // For now, we set it to false *before* push for simplicity as the visual is key
+       setTimeout(() => setIsLoading(false), 100); // slightly delay to ensure visual consistency
+    }, 3000);
+  };
+
   const handleLogout = () => {
+    // Logout doesn't use the 3s loader, direct push
     router.push('/login');
   };
 
@@ -131,15 +150,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <SidebarMenuSub>
                           {item.children.map((child) => (
                             <SidebarMenuSubItem key={child.label}>
-                              <Link href={child.href} legacyBehavior passHref>
-                                <SidebarMenuSubButton
-                                  isActive={pathname === child.href}
-                                  className="w-full"
-                                >
-                                  <child.icon className="mr-0" /> 
-                                  <span>{child.label}</span>
-                                </SidebarMenuSubButton>
-                              </Link>
+                              <SidebarMenuSubButton
+                                onClick={() => handleNavigation(child.href)}
+                                isActive={pathname === child.href}
+                                className="w-full"
+                              >
+                                <child.icon className="mr-0" /> 
+                                <span>{child.label}</span>
+                              </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           ))}
                         </SidebarMenuSub>
@@ -148,16 +166,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Accordion>
                 ) : (
                   <SidebarMenuItem key={item.label}>
-                    <Link href={item.href} legacyBehavior passHref>
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        isActive={pathname === item.href}
-                        className="w-full"
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton
+                      onClick={() => handleNavigation(item.href)}
+                      tooltip={item.label}
+                      isActive={pathname === item.href}
+                      className="w-full"
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
               )}
@@ -172,15 +189,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        {/* Persistent Header for all screen sizes */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
-            {/* SidebarTrigger for mobile, to open the sheet-style sidebar */}
             <SidebarTrigger className="md:hidden" />
-            {/* You can add breadcrumbs or dynamic page titles here in the future */}
           </div>
           <div>
-            {/* AppLogo (Falcon T25) will be displayed on the right */}
             <AppLogo showIcon={true} iconSize={28} textSize="text-xl" />
           </div>
         </header>
@@ -188,6 +201,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {children}
         </main>
       </SidebarInset>
+      <LoadingOverlay /> {/* Render LoadingOverlay here */}
     </SidebarProvider>
   );
+}
+
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <LoadingProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </LoadingProvider>
+  )
 }
