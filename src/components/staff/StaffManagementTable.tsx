@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { StaffMember, Recognition } from '@/lib/types';
 import { mockStaffMembers, mockRecognitions } from '@/lib/mockData'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,10 +14,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info } from 'lucide-react';
 import Image from 'next/image';
 import { generatePerformanceHighlights, GeneratePerformanceHighlightsInput, GeneratePerformanceHighlightsOutput } from '@/ai/flows/generate-performance-highlights';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { StaffIdCard } from './StaffIdCard'; // Import the new ID card component
 
 const staffFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -44,13 +45,26 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const [isFetchingHighlights, setIsFetchingHighlights] = useState(false);
   const [highlightsError, setHighlightsError] = useState<string | null>(null);
 
+  const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
+  const [newlyRegisteredStaff, setNewlyRegisteredStaff] = useState<StaffMember | null>(null);
+
+
   const { toast } = useToast();
-  const { control, handleSubmit, reset, setValue, watch } = useForm<StaffFormValues>({
+  const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema),
     defaultValues: { name: '', email: '', imageUrl: '', department: '' },
   });
   
   const currentImageUrl = watch('imageUrl');
+
+  // Re-initialize previewImage when editingStaff or currentImageUrl changes
+  useEffect(() => {
+    if (editingStaff) {
+      setPreviewImage(editingStaff.imageUrl || currentImageUrl || null);
+    } else {
+       setPreviewImage(currentImageUrl || null);
+    }
+  }, [editingStaff, currentImageUrl]);
 
   const recognitionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -62,15 +76,15 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
 
   const openModalForEdit = (staff: StaffMember) => {
     setEditingStaff(staff);
-    reset({ name: staff.name, email: staff.email, imageUrl: staff.imageUrl, department: staff.department });
-    setPreviewImage(staff.imageUrl);
+    reset({ name: staff.name, email: staff.email, imageUrl: staff.imageUrl || '', department: staff.department || '' });
+    // setPreviewImage(staff.imageUrl); // This will be handled by useEffect
     setIsModalOpen(true);
   };
 
   const openModalForNew = () => {
     setEditingStaff(null);
     reset({ name: '', email: '', imageUrl: '', department: '' });
-    setPreviewImage(null);
+    // setPreviewImage(null); // This will be handled by useEffect
     setIsModalOpen(true);
   };
 
@@ -78,7 +92,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     setIsModalOpen(false);
     setEditingStaff(null);
     reset();
-    setPreviewImage(null);
+    setPreviewImage(null); // Explicitly clear preview on close
   };
 
   const onSubmit = async (data: StaffFormValues) => {
@@ -86,20 +100,27 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     await new Promise(resolve => setTimeout(resolve, 1000)); 
 
     if (editingStaff) {
-      setStaffList(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...data, imageUrl: data.imageUrl || s.imageUrl } : s));
+      setStaffList(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...data, imageUrl: data.imageUrl || s.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}` } : s));
       toast({ title: 'Staff Updated', description: `${data.name} has been updated.` });
+      closeModal();
     } else {
       const newStaff: StaffMember = {
-        id: `staff${staffList.length + 1 + Math.random()}`,
+        id: `staff${staffList.length + 1}-${Math.random().toString(36).substring(2, 7)}`, // More unique ID
         ...data,
         imageUrl: data.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}`,
         status: 'active', 
       };
       setStaffList(prev => [newStaff, ...prev]);
-      toast({ title: 'Staff Added', description: `${data.name} has been added.` });
+      toast({
+        title: 'Staff Registered!',
+        description: `${newStaff.name} has been successfully added.`,
+        action: <UserRoundCheck className="h-5 w-5 text-green-500" />,
+      });
+      setNewlyRegisteredStaff(newStaff); // Store new staff for ID card
+      setIsIdCardModalOpen(true); // Open ID card modal
+      closeModal(); // Close registration modal
     }
     setIsSubmitting(false);
-    closeModal();
   };
 
   const handleDeleteStaff = async (staffId: string) => {
@@ -118,13 +139,13 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        setPreviewImage(result);
-        setValue('imageUrl', result, { shouldValidate: true }); 
+        setPreviewImage(result); // Update preview for immediate feedback
+        setValue('imageUrl', result, { shouldValidate: true }); // Update form value
       };
       reader.readAsDataURL(file);
     } else {
-      setPreviewImage(null);
-      setValue('imageUrl', '', { shouldValidate: true });
+      // If no file is selected (e.g., user cancels file dialog), don't clear potentially pasted URL
+      // Only clear preview if user explicitly removes an uploaded image (not implemented here)
     }
   };
 
@@ -258,59 +279,57 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </Table>
       </div>
 
-      {/* Add/Edit Staff Dialog */}
+      {/* Add/Edit Staff Dialog (Registration Form) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+                {editingStaff ? <Edit3 className="h-5 w-5" /> : <UserRoundCheck className="h-5 w-5 text-primary" />}
+                {editingStaff ? 'Edit Staff Member' : 'Register New Staff Member'}
+            </DialogTitle>
             <DialogDescription>
-              {editingStaff ? 'Update the details for this staff member.' : 'Enter the details for the new staff member.'}
+              {editingStaff ? 'Update the details for this staff member.' : 'Complete the form to register a new staff member.'}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
             <div>
               <Label htmlFor="name">Full Name</Label>
-              <Controller name="name" control={control} render={({ field, fieldState }) => (
-                <>
+              <Controller name="name" control={control} render={({ field }) => (
                   <Input id="name" {...field} disabled={isSubmitting} />
-                  {fieldState.error && <p className="text-sm text-destructive mt-1">{fieldState.error.message}</p>}
-                </>
               )} />
+              {errors.name && <p className="text-sm text-destructive mt-1">{errors.name.message}</p>}
             </div>
             <div>
               <Label htmlFor="email">Email Address</Label>
-              <Controller name="email" control={control} render={({ field, fieldState }) => (
-                 <>
+              <Controller name="email" control={control} render={({ field }) => (
                   <Input id="email" type="email" {...field} disabled={isSubmitting} />
-                  {fieldState.error && <p className="text-sm text-destructive mt-1">{fieldState.error.message}</p>}
-                </>
               )} />
+               {errors.email && <p className="text-sm text-destructive mt-1">{errors.email.message}</p>}
             </div>
              <div>
               <Label htmlFor="department">Department (Optional)</Label>
-              <Controller name="department" control={control} render={({ field, fieldState }) => (
-                 <>
+              <Controller name="department" control={control} render={({ field }) => (
                   <Input id="department" {...field} disabled={isSubmitting} />
-                  {fieldState.error && <p className="text-sm text-destructive mt-1">{fieldState.error.message}</p>}
-                </>
               )} />
+               {errors.department && <p className="text-sm text-destructive mt-1">{errors.department.message}</p>}
             </div>
             <div>
                 <Label htmlFor="imageUrl">Profile Image</Label>
                 <div className="mt-1 flex items-center gap-4">
-                    {(previewImage || currentImageUrl) && (
+                    {(previewImage) && ( // Use previewImage directly here
                         <Image 
-                            src={previewImage || currentImageUrl || ''}
+                            src={previewImage}
                             alt="Profile preview"
                             width={64} height={64}
-                            className="h-16 w-16 rounded-full object-cover"
+                            className="h-16 w-16 rounded-full object-cover border-2 border-muted"
                             data-ai-hint="person photo"
+                            onError={() => setPreviewImage('https://placehold.co/64x64.png?text=Error')} // Fallback for broken image preview
                         />
                     )}
                     <Input 
                         id="imageFile" 
                         type="file" 
-                        accept="image/png, image/jpeg"
+                        accept="image/png, image/jpeg, image/webp, image/gif" // Accept more image types
                         onChange={handleImageInputChange}
                         className="hidden" 
                         disabled={isSubmitting}
@@ -319,23 +338,21 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                         <UploadCloud className="mr-2 h-4 w-4" /> Upload Image
                     </Button>
                 </div>
-                 <Controller name="imageUrl" control={control} render={({ fieldState }) => (
-                     fieldState.error && <p className="text-sm text-destructive mt-1">{fieldState.error.message}</p>
-                 )} />
-                <p className="text-xs text-muted-foreground mt-1">Alternatively, you can paste an image URL below (for demo).</p>
+                <p className="text-xs text-muted-foreground mt-1">Or paste image URL below (PNG, JPG, WEBP, GIF supported).</p>
                  <Controller name="imageUrl" control={control} render={({ field }) => (
                     <Input 
                         id="imageUrl" 
-                        placeholder="Or paste image URL here"
+                        placeholder="Paste image URL (e.g., https://example.com/image.png)"
                         value={field.value || ''}
                         onChange={(e) => {
                             field.onChange(e);
-                            setPreviewImage(e.target.value);
+                            setPreviewImage(e.target.value); // Update preview when URL is typed/pasted
                         }}
                         className="mt-1 text-xs"
                         disabled={isSubmitting}
                     />
                 )} />
+                 {errors.imageUrl && <p className="text-sm text-destructive mt-1">{errors.imageUrl.message}</p>}
             </div>
 
             <DialogFooter className="pt-4">
@@ -344,7 +361,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editingStaff ? 'Save Changes' : 'Add Staff'}
+                {editingStaff ? 'Save Changes' : 'Register Staff'}
               </Button>
             </DialogFooter>
           </form>
@@ -394,6 +411,31 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ID Card Display Dialog */}
+      {newlyRegisteredStaff && (
+        <Dialog open={isIdCardModalOpen} onOpenChange={setIsIdCardModalOpen}>
+          <DialogContent className="sm:max-w-xs p-0 border-0 bg-transparent shadow-none">
+            {/* DialogHeader and DialogTitle removed for a cleaner ID card presentation */}
+            <StaffIdCard staff={newlyRegisteredStaff} />
+            <DialogFooter className="sm:justify-center pt-4 px-6 pb-6 bg-background rounded-b-lg">
+              <DialogClose asChild>
+                <Button 
+                  type="button" 
+                  variant="default" 
+                  onClick={() => {
+                    setIsIdCardModalOpen(false);
+                    setNewlyRegisteredStaff(null);
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
