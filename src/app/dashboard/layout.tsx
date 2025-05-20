@@ -51,9 +51,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; // Import LoadingProvider and useLoading
-import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; // Import LoadingOverlay
-import { SheetTitle } from '@/components/ui/sheet'; // Import SheetTitle
+import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; 
+import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
+import { SheetTitle } from '@/components/ui/sheet'; 
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -99,20 +99,19 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     if (pathname === href) return; // Don't trigger for same page
 
     setIsLoading(true);
-    setTimeout(() => {
-      router.push(href);
-      // It's good practice to turn off loading after navigation attempt,
-      // though page load will naturally hide it.
-      // For SPA-like feel, you might set isLoading(false) in a useEffect listening to pathname changes.
-      // For this 3s delay, we'll let the page load handle it.
-      // However, if navigation fails or is very fast, this might need adjustment.
-      // For now, we set it to false *before* push for simplicity as the visual is key
-       setTimeout(() => setIsLoading(false), 100); // slightly delay to ensure visual consistency
-    }, 3000);
+    router.push(href);
+    // setIsLoading(false) will be handled by the useEffect below, listening to pathname changes.
   };
 
+  React.useEffect(() => {
+    // When the pathname changes (i.e., navigation is complete and new page is rendering),
+    // set isLoading to false.
+    setIsLoading(false);
+  }, [pathname, setIsLoading]);
+
+
   const handleLogout = () => {
-    // Logout doesn't use the 3s loader, direct push
+    // Logout doesn't use the loading overlay, direct push
     router.push('/login');
   };
 
