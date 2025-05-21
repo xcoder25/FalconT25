@@ -2,20 +2,20 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { StaffMember, Recognition, SignInSignOutRecord, Branch } from '@/lib/types'; // Added Branch
-import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras, mockBranches } from '@/lib/mockData'; // Added mockBranches
+import type { StaffMember, Recognition, SignInSignOutRecord, Branch } from '@/lib/types';
+import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras, mockBranches } from '@/lib/mockData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info, Clock, UserCog, MapPin } from 'lucide-react'; // Added MapPin
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info, Clock, UserCog, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { generatePerformanceHighlights, GeneratePerformanceHighlightsInput, GeneratePerformanceHighlightsOutput } from '@/ai/flows/generate-performance-highlights';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,14 +26,13 @@ const staffFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
   imageUrl: z.string().url('Invalid image URL.').optional().or(z.literal('')),
   department: z.string().optional(),
-  branchId: z.string().optional(), // Added branchId
+  branchId: z.string().optional(),
 });
 
 type StaffFormValues = z.infer<typeof staffFormSchema>;
 
 interface StaffManagementTableProps {}
 
-// Helper for individual attendance log modal
 const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }) => {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
   useEffect(() => {
@@ -42,6 +41,25 @@ const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }
   if (formattedDate === null) return <span className="text-xs text-muted-foreground">Loading...</span>;
   return <>{formattedDate}</>;
 };
+
+const tableHeaders = [
+  { key: 'image', label: 'Image' },
+  { key: 'name', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'department', label: 'Department' },
+  { key: 'branch', label: 'Branch' },
+  { key: 'status', label: 'Status' },
+  { 
+    key: 'recognitions', 
+    label: (
+      <div className="flex items-center justify-center">
+        <Award size={16} className="mr-1"/> Recognitions
+      </div>
+    ),
+    className: "text-center" 
+  },
+  { key: 'actions', label: 'Actions', className: "text-right" },
+];
 
 
 export function StaffManagementTable({}: StaffManagementTableProps) {
@@ -89,7 +107,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         .filter(log => log.staffMemberId === selectedStaffForAttendance.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setIndividualAttendanceLog(logs);
-      // Determine last action for the simulate button
       if (logs.length > 0 && logs[0].type === 'signin') {
         setLastClockAction('signin');
       } else {
@@ -229,23 +246,21 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     const newActionType = lastClockAction === 'signout' ? 'signin' : 'signout';
     
     let cameraName: string;
-    if (Math.random() < 0.5 && mockCameras.length > 0) { 
+    if (mockCameras.length > 0 && Math.random() < 0.5) { 
         const randomCameraFromList = mockCameras[Math.floor(Math.random() * mockCameras.length)];
         cameraName = randomCameraFromList.name;
     } else {
         cameraName = "Phone Camera"; 
     }
-    if (mockCameras.length === 0) {
+    if (mockCameras.length === 0) { // Fallback if no cameras are defined
         cameraName = "Phone Camera";
     }
 
     addSignInSignOutRecord({
         staffMemberId: selectedStaffForAttendance.id,
-        // staffName: selectedStaffForAttendance.name, // Handled by addSignInSignOutRecord
         timestamp: new Date().toISOString(),
         type: newActionType,
         camera: cameraName,
-        // snapshotImageUrl: selectedStaffForAttendance.imageUrl, // Handled by addSignInSignOutRecord
     });
     
     const updatedLogs = mockSignInSignOutHistory
@@ -291,18 +306,11 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Image</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Branch</TableHead> {/* Added Branch column */}
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center">
-                <div className="flex items-center justify-center">
-                  <Award size={16} className="mr-1"/> Recognitions
-                </div>
-              </TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {tableHeaders.map(header => (
+                <TableHead key={header.key} className={header.className}>
+                  {header.label}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -318,7 +326,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 <TableCell className="font-medium">{staff.name}</TableCell>
                 <TableCell>{staff.email}</TableCell>
                 <TableCell>{staff.department || 'N/A'}</TableCell>
-                <TableCell>{staff.branchName || 'N/A'}</TableCell> {/* Display Branch Name */}
+                <TableCell>{staff.branchName || 'N/A'}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     staff.status === 'recognized' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 
@@ -351,7 +359,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
             ))
             ) : (
                <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">  {/* Updated colSpan */}
+                <TableCell colSpan={tableHeaders.length} className="h-24 text-center text-muted-foreground">
                   No staff members found.
                 </TableCell>
               </TableRow>
@@ -360,7 +368,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </Table>
       </div>
 
-      {/* Add/Edit Staff Dialog (Registration Form) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -400,7 +407,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 name="branchId"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value || ""} disabled={isSubmitting}>
+                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting}>
                     <SelectTrigger id="branchId">
                       <SelectValue placeholder="Select a branch (optional)" />
                     </SelectTrigger>
@@ -472,7 +479,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </DialogContent>
       </Dialog>
 
-      {/* AI Performance Highlights Dialog */}
       <Dialog open={isHighlightsModalOpen} onOpenChange={setIsHighlightsModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -516,7 +522,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </DialogContent>
       </Dialog>
 
-      {/* ID Card Display Dialog */}
       {newlyRegisteredStaff && (
         <Dialog open={isIdCardModalOpen} onOpenChange={setIsIdCardModalOpen}>
           <DialogContent className="sm:max-w-xs p-0 border-0 bg-transparent shadow-none">
@@ -539,7 +544,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         </Dialog>
       )}
 
-      {/* Individual Attendance Log Dialog */}
       {selectedStaffForAttendance && (
         <Dialog open={isAttendanceLogModalOpen} onOpenChange={setIsAttendanceLogModalOpen}>
           <DialogContent className="sm:max-w-2xl">
@@ -560,7 +564,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                       <TableHead>Timestamp</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Camera</TableHead>
-                      <TableHead>Branch</TableHead> {/* Added Branch column */}
+                      <TableHead>Branch</TableHead>
                       <TableHead>Snapshot</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -580,7 +584,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                           </span>
                         </TableCell>
                         <TableCell>{log.camera}</TableCell>
-                        <TableCell>{log.branchName || 'N/A'}</TableCell> {/* Display Branch Name */}
+                        <TableCell>{log.branchName || 'N/A'}</TableCell>
                         <TableCell>
                           {log.snapshotImageUrl ? (
                             <Avatar className="h-8 w-8 rounded-sm">
@@ -619,3 +623,5 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     </div>
   );
 }
+
+    
