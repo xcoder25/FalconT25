@@ -61,6 +61,8 @@ const tableHeaders = [
   { key: 'actions', label: 'Actions', className: "text-right" },
 ];
 
+const NO_BRANCH_VALUE = "__NO_BRANCH_ASSIGNED__";
+
 
 export function StaffManagementTable({}: StaffManagementTableProps) {
   const [staffList, setStaffList] = useState<StaffMember[]>(mockStaffMembers);
@@ -407,12 +409,22 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 name="branchId"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isSubmitting}>
+                  <Select 
+                    onValueChange={(value) => {
+                      if (value === NO_BRANCH_VALUE) {
+                        field.onChange(''); 
+                      } else {
+                        field.onChange(value);
+                      }
+                    }} 
+                    value={field.value ? field.value : NO_BRANCH_VALUE} 
+                    disabled={isSubmitting}
+                  >
                     <SelectTrigger id="branchId">
                       <SelectValue placeholder="Select a branch (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Branch / Not Applicable</SelectItem>
+                      <SelectItem value={NO_BRANCH_VALUE}>No Branch / Not Applicable</SelectItem>
                       {mockBranches.map((branch: Branch) => (
                         <SelectItem key={branch.id} value={branch.id}>
                           {branch.name} ({branch.location || 'Main'})
