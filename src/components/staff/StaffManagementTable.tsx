@@ -222,14 +222,26 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     if (!selectedStaffForAttendance) return;
     
     const newActionType = lastClockAction === 'signout' ? 'signin' : 'signout';
-    const randomCamera = mockCameras[Math.floor(Math.random() * mockCameras.length)];
+    
+    let cameraName: string;
+    if (Math.random() < 0.5 && mockCameras.length > 0) { // 50% chance of being a phone camera, if mockCameras exist for alternative
+        const randomCameraFromList = mockCameras[Math.floor(Math.random() * mockCameras.length)];
+        cameraName = randomCameraFromList.name;
+    } else {
+        cameraName = "Phone Camera"; // Default to Phone Camera if no mockCameras or by chance
+    }
+    // If mockCameras is empty, it will always be "Phone Camera"
+    if (mockCameras.length === 0) {
+        cameraName = "Phone Camera";
+    }
+
 
     addSignInSignOutRecord({
         staffMemberId: selectedStaffForAttendance.id,
         staffName: selectedStaffForAttendance.name,
         timestamp: new Date().toISOString(),
         type: newActionType,
-        camera: randomCamera.name,
+        camera: cameraName,
         snapshotImageUrl: selectedStaffForAttendance.imageUrl,
     });
     
@@ -243,7 +255,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     
     toast({
         title: `Mock ${newActionType.charAt(0).toUpperCase() + newActionType.slice(1)} Recorded`,
-        description: `${selectedStaffForAttendance.name} ${newActionType === 'signin' ? 'clocked in' : 'clocked out'} at ${randomCamera.name}.`,
+        description: `${selectedStaffForAttendance.name} ${newActionType === 'signin' ? 'clocked in' : 'clocked out'} at ${cameraName}.`,
     });
   };
 
@@ -576,3 +588,4 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     </div>
   );
 }
+
