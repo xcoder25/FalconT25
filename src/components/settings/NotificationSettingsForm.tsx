@@ -23,7 +23,10 @@ const notificationSettingsSchema = z.object({
   telegramNotifications: z.boolean(),
   telegramUsername: z.string().optional(),
   whatsAppNotifications: z.boolean(),
-  whatsAppNumber: z.string().optional(), // Simple string for now
+  whatsAppNumber: z.string()
+    .regex(/^(\+\d{1,3}[- ]?)?\d{10,15}$|^$/, { message: "Invalid phone number format (e.g., +1234567890)." })
+    .optional()
+    .or(z.literal('')),
 });
 
 type NotificationSettingsValues = z.infer<typeof notificationSettingsSchema>;
@@ -161,6 +164,7 @@ export function NotificationSettingsForm() {
                                 id="telegramUsername"
                                 placeholder="@your_username or User ID"
                                 {...field}
+                                value={field.value || ''} // Ensure controlled component
                                 disabled={isSubmitting}
                                 className="text-sm h-9 mt-0.5"
                             />
@@ -206,6 +210,7 @@ export function NotificationSettingsForm() {
                                 type="tel"
                                 placeholder="e.g., +12345678900"
                                 {...field}
+                                value={field.value || ''} // Ensure controlled component
                                 disabled={isSubmitting}
                                 className="text-sm h-9 mt-0.5"
                             />
