@@ -1,5 +1,4 @@
 
-
 export interface User {
   id: string;
   name: string;
@@ -38,6 +37,12 @@ export interface RecognitionValue {
   description?: string;
 }
 
+export interface Branch {
+  id: string;
+  name: string;
+  location?: string;
+}
+
 export interface StaffMember {
   id: string;
   name: string;
@@ -45,6 +50,7 @@ export interface StaffMember {
   imageUrl: string;
   status: 'recognized' | 'unknown' | 'active';
   department?: string; // Optional
+  branchId?: string; // Optional: ID of the branch the staff member belongs to
 }
 
 export interface SignInSignOutRecord {
@@ -55,6 +61,7 @@ export interface SignInSignOutRecord {
   type: 'signin' | 'signout' | 'sighting'; // Added 'sighting' for unrecognized
   camera: string; // Camera name or ID
   snapshotImageUrl?: string; // Optional snapshot of the face
+  branchName?: string; // Optional: Name of the branch where the event occurred
 }
 
 export interface Camera {
@@ -91,4 +98,3 @@ export interface AuditLogEntry {
   ipAddress?: string; // Optional: IP address of the user
   targetId?: string; // Optional: ID of the entity being affected (e.g., staff ID)
 }
-

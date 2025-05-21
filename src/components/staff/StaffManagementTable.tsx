@@ -2,19 +2,20 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { StaffMember, Recognition, SignInSignOutRecord } from '@/lib/types';
-import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras } from '@/lib/mockData'; 
+import type { StaffMember, Recognition, SignInSignOutRecord, Branch } from '@/lib/types'; // Added Branch
+import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras, mockBranches } from '@/lib/mockData'; // Added mockBranches
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select components
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info, Clock, UserCog } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info, Clock, UserCog, MapPin } from 'lucide-react'; // Added MapPin
 import Image from 'next/image';
 import { generatePerformanceHighlights, GeneratePerformanceHighlightsInput, GeneratePerformanceHighlightsOutput } from '@/ai/flows/generate-performance-highlights';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +26,7 @@ const staffFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
   imageUrl: z.string().url('Invalid image URL.').optional().or(z.literal('')),
   department: z.string().optional(),
+  branchId: z.string().optional(), // Added branchId
 });
 
 type StaffFormValues = z.infer<typeof staffFormSchema>;
@@ -68,7 +70,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const { toast } = useToast();
   const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema),
-    defaultValues: { name: '', email: '', imageUrl: '', department: '' },
+    defaultValues: { name: '', email: '', imageUrl: '', department: '', branchId: '' },
   });
   
   const currentImageUrl = watch('imageUrl');
@@ -94,7 +96,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         setLastClockAction('signout');
       }
     }
-  }, [selectedStaffForAttendance, mockSignInSignOutHistory]);
+  }, [selectedStaffForAttendance]);
 
 
   const recognitionCounts = useMemo(() => {
@@ -107,13 +109,13 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
 
   const openModalForEdit = (staff: StaffMember) => {
     setEditingStaff(staff);
-    reset({ name: staff.name, email: staff.email, imageUrl: staff.imageUrl || '', department: staff.department || '' });
+    reset({ name: staff.name, email: staff.email, imageUrl: staff.imageUrl || '', department: staff.department || '', branchId: staff.branchId || '' });
     setIsModalOpen(true);
   };
 
   const openModalForNew = () => {
     setEditingStaff(null);
-    reset({ name: '', email: '', imageUrl: '', department: '' });
+    reset({ name: '', email: '', imageUrl: '', department: '', branchId: '' });
     setIsModalOpen(true);
   };
 
@@ -130,6 +132,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
 
     if (editingStaff) {
       setStaffList(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...data, imageUrl: data.imageUrl || s.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}` } : s));
+      mockStaffMembers.splice(mockStaffMembers.findIndex(s => s.id === editingStaff.id), 1, staffList.find(s => s.id === editingStaff.id)!);
       toast({ title: 'Staff Updated', description: `${data.name} has been updated.` });
       closeModal();
     } else {
@@ -140,6 +143,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         status: 'active', 
       };
       setStaffList(prev => [newStaff, ...prev]);
+      mockStaffMembers.push(newStaff);
       toast({
         title: 'Staff Registered!',
         description: `${newStaff.name} has been successfully added.`,
@@ -157,6 +161,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       setIsSubmitting(true); 
       await new Promise(resolve => setTimeout(resolve, 500));
       setStaffList(prev => prev.filter(s => s.id !== staffId));
+      mockStaffMembers.splice(mockStaffMembers.findIndex(s => s.id === staffId), 1);
       toast({ title: 'Staff Deleted', description: 'The staff member has been removed.', variant: 'destructive' });
       setIsSubmitting(false);
     }
@@ -224,34 +229,31 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     const newActionType = lastClockAction === 'signout' ? 'signin' : 'signout';
     
     let cameraName: string;
-    if (Math.random() < 0.5 && mockCameras.length > 0) { // 50% chance of being a phone camera, if mockCameras exist for alternative
+    if (Math.random() < 0.5 && mockCameras.length > 0) { 
         const randomCameraFromList = mockCameras[Math.floor(Math.random() * mockCameras.length)];
         cameraName = randomCameraFromList.name;
     } else {
-        cameraName = "Phone Camera"; // Default to Phone Camera if no mockCameras or by chance
+        cameraName = "Phone Camera"; 
     }
-    // If mockCameras is empty, it will always be "Phone Camera"
     if (mockCameras.length === 0) {
         cameraName = "Phone Camera";
     }
 
-
     addSignInSignOutRecord({
         staffMemberId: selectedStaffForAttendance.id,
-        staffName: selectedStaffForAttendance.name,
+        // staffName: selectedStaffForAttendance.name, // Handled by addSignInSignOutRecord
         timestamp: new Date().toISOString(),
         type: newActionType,
         camera: cameraName,
-        snapshotImageUrl: selectedStaffForAttendance.imageUrl,
+        // snapshotImageUrl: selectedStaffForAttendance.imageUrl, // Handled by addSignInSignOutRecord
     });
     
-    // Force re-fetch/re-filter of logs for the modal
     const updatedLogs = mockSignInSignOutHistory
-        .filter(log => log.staffMemberId === selectedStaffForAttendance.id)
+        .filter(log => log.staffMemberId === selectedStaffForAttendance!.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     setIndividualAttendanceLog(updatedLogs);
     
-    setLastClockAction(newActionType); // Toggle for next simulation
+    setLastClockAction(newActionType); 
     
     toast({
         title: `Mock ${newActionType.charAt(0).toUpperCase() + newActionType.slice(1)} Recorded`,
@@ -263,20 +265,22 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const filteredStaff = staffList.filter(staff => 
     staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     staff.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (staff.department && staff.department.toLowerCase().includes(searchTerm.toLowerCase()))
+    (staff.department && staff.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (staff.branchId && mockBranches.find(b => b.id === staff.branchId)?.name.toLowerCase().includes(searchTerm.toLowerCase()))
   ).map(staff => ({
     ...staff,
     recognitionsReceived: recognitionCounts[staff.id] || 0,
+    branchName: staff.branchId ? mockBranches.find(b => b.id === staff.branchId)?.name : undefined,
   }));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <Input 
-          placeholder="Search staff by name, email, or department..."
+          placeholder="Search staff by name, email, department, or branch..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm text-sm"
+          className="max-w-md text-sm"
         />
         <Button onClick={openModalForNew} className="w-full sm:w-auto">
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Staff
@@ -291,6 +295,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Department</TableHead>
+              <TableHead>Branch</TableHead> {/* Added Branch column */}
               <TableHead>Status</TableHead>
               <TableHead className="text-center">
                 <div className="flex items-center justify-center">
@@ -313,6 +318,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 <TableCell className="font-medium">{staff.name}</TableCell>
                 <TableCell>{staff.email}</TableCell>
                 <TableCell>{staff.department || 'N/A'}</TableCell>
+                <TableCell>{staff.branchName || 'N/A'}</TableCell> {/* Display Branch Name */}
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     staff.status === 'recognized' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 
@@ -345,7 +351,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
             ))
             ) : (
                <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground"> 
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">  {/* Updated colSpan */}
                   No staff members found.
                 </TableCell>
               </TableRow>
@@ -387,6 +393,29 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                   <Input id="department" {...field} disabled={isSubmitting} />
               )} />
                {errors.department && <p className="text-sm text-destructive mt-1">{errors.department.message}</p>}
+            </div>
+            <div>
+              <Label htmlFor="branchId">Branch Assignment (Optional)</Label>
+              <Controller
+                name="branchId"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} defaultValue={field.value || ""} disabled={isSubmitting}>
+                    <SelectTrigger id="branchId">
+                      <SelectValue placeholder="Select a branch (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Branch / Not Applicable</SelectItem>
+                      {mockBranches.map((branch: Branch) => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.name} ({branch.location || 'Main'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.branchId && <p className="text-sm text-destructive mt-1">{errors.branchId.message}</p>}
             </div>
             <div>
                 <Label htmlFor="imageUrl">Profile Image</Label>
@@ -520,7 +549,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                 Attendance Log: {selectedStaffForAttendance.name}
               </DialogTitle>
               <DialogDescription>
-                Showing clock-in and clock-out records for this staff member.
+                Showing clock-in and clock-out records for this staff member. Assigned Branch: {mockBranches.find(b => b.id === selectedStaffForAttendance.branchId)?.name || 'N/A'}
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh] py-4 pr-2">
@@ -531,6 +560,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                       <TableHead>Timestamp</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Camera</TableHead>
+                      <TableHead>Branch</TableHead> {/* Added Branch column */}
                       <TableHead>Snapshot</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -550,6 +580,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                           </span>
                         </TableCell>
                         <TableCell>{log.camera}</TableCell>
+                        <TableCell>{log.branchName || 'N/A'}</TableCell> {/* Display Branch Name */}
                         <TableCell>
                           {log.snapshotImageUrl ? (
                             <Avatar className="h-8 w-8 rounded-sm">
@@ -588,4 +619,3 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     </div>
   );
 }
-

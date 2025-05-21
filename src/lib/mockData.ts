@@ -1,5 +1,5 @@
 
-import type { User, Recognition, RecognitionValue, StaffMember, SignInSignOutRecord, Camera, AppNotification, AuditLogEntry } from './types';
+import type { User, Recognition, RecognitionValue, StaffMember, SignInSignOutRecord, Camera, AppNotification, AuditLogEntry, Branch } from './types';
 
 // Ensure some User IDs overlap with StaffMember IDs for linking recognitions
 export const mockUsers: User[] = [
@@ -14,12 +14,17 @@ export const mockUsers: User[] = [
   { id: 'adminUser', name: 'Admin User', avatarUrl: 'https://placehold.co/100x100.png?text=AU', email: 'xcoder2442@gmail.com' }
 ];
 
+export const mockBranches: Branch[] = [
+  { id: 'branch_hq', name: 'Headquarters', location: 'New York, NY' },
+  { id: 'branch_west', name: 'West Coast Office', location: 'San Francisco, CA' },
+  { id: 'branch_eu', name: 'European Hub', location: 'Berlin, Germany' },
+];
 
-export const mockStaffMembers: StaffMember[] = [
-  { id: 'staff1', name: 'Eve Adamson', email: 'eve@example.com', imageUrl: 'https://placehold.co/150x150.png?text=EA', status: 'recognized', department: 'Engineering' },
-  { id: 'staff2', name: 'Frankenstein Monster', email: 'frank@example.com', imageUrl: 'https://placehold.co/150x150.png?text=FM', status: 'unknown', department: 'Research' },
-  { id: 'staff3', name: 'Grace Hopper', email: 'grace@example.com', imageUrl: 'https://placehold.co/150x150.png?text=GH', status: 'active', department: 'Development' },
-  { id: 'staff4', name: 'Harry Potter', email: 'harry@example.com', imageUrl: 'https://placehold.co/150x150.png?text=HP', status: 'recognized', department: 'Magic' },
+export let mockStaffMembers: StaffMember[] = [
+  { id: 'staff1', name: 'Eve Adamson', email: 'eve@example.com', imageUrl: 'https://placehold.co/150x150.png?text=EA', status: 'recognized', department: 'Engineering', branchId: 'branch_hq' },
+  { id: 'staff2', name: 'Frankenstein Monster', email: 'frank@example.com', imageUrl: 'https://placehold.co/150x150.png?text=FM', status: 'unknown', department: 'Research' }, // No branch
+  { id: 'staff3', name: 'Grace Hopper', email: 'grace@example.com', imageUrl: 'https://placehold.co/150x150.png?text=GH', status: 'active', department: 'Development', branchId: 'branch_west' },
+  { id: 'staff4', name: 'Harry Potter', email: 'harry@example.com', imageUrl: 'https://placehold.co/150x150.png?text=HP', status: 'recognized', department: 'Magic', branchId: 'branch_eu' },
 ];
 
 export const mockRecognitionValues: RecognitionValue[] = [
@@ -104,18 +109,17 @@ export let mockRecognitions: Recognition[] = [ // Changed to let for potential d
 
 // Changed to let to allow modification for real-time simulation
 export let mockSignInSignOutHistory: SignInSignOutRecord[] = [
-  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(), type: 'signin', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
-  { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7.5).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face1' },
-  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString(), type: 'signin', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
-  { id: 'hist1_out', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), type: 'signout', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
-  { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A', snapshotImageUrl: 'https://placehold.co/80x80.png?text=HP' },
-  { id: 'hist3_out', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), type: 'signout', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
-  // Add more entries for variety
-  { id: 'hist5', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA2' }, // Yesterday
-  { id: 'hist6', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60 * 8).toISOString(), type: 'signout', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA3' }, // Yesterday
-  { id: 'hist7', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 15).toISOString(), type: 'signin', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH2' }, // Yesterday
-  { id: 'hist8', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 60 * 9).toISOString(), type: 'signout', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH3' }, // Yesterday
-  { id: 'hist_unrec2', staffMemberId: 'unrecognized_002', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), type: 'sighting', camera: 'Parking Lot Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face2' },
+  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(), type: 'signin', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA', branchName: 'Headquarters' },
+  { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7.5).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face1', branchName: 'Headquarters' },
+  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString(), type: 'signin', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH', branchName: 'West Coast Office' },
+  { id: 'hist1_out', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), type: 'signout', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA', branchName: 'Headquarters' },
+  { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A', snapshotImageUrl: 'https://placehold.co/80x80.png?text=HP', branchName: 'European Hub' },
+  { id: 'hist3_out', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), type: 'signout', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH', branchName: 'West Coast Office' },
+  { id: 'hist5', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA2', branchName: 'Headquarters' }, // Yesterday
+  { id: 'hist6', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60 * 8).toISOString(), type: 'signout', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA3', branchName: 'Headquarters' }, // Yesterday
+  { id: 'hist7', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 15).toISOString(), type: 'signin', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH2', branchName: 'West Coast Office' }, // Yesterday
+  { id: 'hist8', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 60 * 9).toISOString(), type: 'signout', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH3', branchName: 'West Coast Office' }, // Yesterday
+  { id: 'hist_unrec2', staffMemberId: 'unrecognized_002', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), type: 'sighting', camera: 'Parking Lot Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face2', branchName: 'Headquarters' }, // Sighting at HQ parking
 ];
 
 export const mockCameras: Camera[] = [
@@ -130,7 +134,7 @@ export const mockCameras: Camera[] = [
 ];
 
 export const mockNotifications: AppNotification[] = [
-  { id: 'notif_unrec', title: 'Security Alert: Unrecognized Person', message: 'An unrecognized person was detected at Lobby Cam.', timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(), read: false, type: 'warning' },
+  { id: 'notif_unrec', title: 'Security Alert: Unrecognized Person', message: 'An unrecognized person was detected at Lobby Cam (Headquarters).', timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString(), read: false, type: 'warning' },
   { id: 'notif1', title: 'New Recognition!', message: 'Eve Adamson received a recognition for Team Player.', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), read: false, type: 'recognition' },
   { id: 'notif2', title: 'Camera Offline', message: 'Lab Cam 1 is currently offline. Please check connection.', timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), read: false, type: 'warning' },
   { id: 'notif3', title: 'System Update', message: 'Applaud system will undergo maintenance tonight at 2 AM.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), read: true, type: 'info' },
@@ -155,7 +159,7 @@ export const mockAuditLogEntries: AuditLogEntry[] = [
     userId: adminUser.id,
     userName: adminUser.name,
     action: 'STAFF_ADDED',
-    details: `Staff member "Harry Potter" (ID: staff4) was added to the system.`,
+    details: `Staff member "Harry Potter" (ID: staff4) was added to the system and assigned to branch "European Hub".`,
     targetId: 'staff4',
     ipAddress: '192.168.1.100',
   },
@@ -188,13 +192,50 @@ export const mockAuditLogEntries: AuditLogEntry[] = [
     targetId: 'cam2',
     ipAddress: '192.168.1.100',
   },
+  {
+    id: 'audit_branch_update',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+    userId: adminUser.id,
+    userName: adminUser.name,
+    action: 'STAFF_UPDATED',
+    details: `Staff member "Eve Adamson" (ID: staff1) branch assignment changed to "Headquarters".`,
+    targetId: 'staff1',
+    ipAddress: '192.168.1.100',
+  },
 ];
 
 // Function to add a new sign-in/out record, can be called to simulate real-time events
-export function addSignInSignOutRecord(record: Omit<SignInSignOutRecord, 'id'>): SignInSignOutRecord {
+export function addSignInSignOutRecord(record: Omit<SignInSignOutRecord, 'id' | 'branchName' | 'staffName' | 'snapshotImageUrl'> & { staffMemberId: string }): SignInSignOutRecord {
+  const staffMember = mockStaffMembers.find(s => s.id === record.staffMemberId);
+  let branchName: string | undefined = undefined;
+  let staffName = 'Unrecognized Person';
+  let snapshotImageUrl = `https://placehold.co/80x80.png?text=${record.type === 'sighting' ? 'Face?' : 'N/A'}`;
+
+  if (staffMember) {
+    staffName = staffMember.name;
+    snapshotImageUrl = staffMember.imageUrl || snapshotImageUrl;
+    if (staffMember.branchId) {
+      const branch = mockBranches.find(b => b.id === staffMember.branchId);
+      branchName = branch?.name;
+    }
+  } else if (record.type === 'sighting') {
+    // For unrecognized sightings, try to determine branch by camera if possible, or default
+    // This part is a bit tricky without knowing which camera maps to which branch.
+    // For simplicity, we might assign a default branch for unrecognized sightings at known camera locations
+    // Or, if the camera name implies a location matching a branch.
+    // For now, if camera implies HQ, use HQ.
+    if (record.camera.toLowerCase().includes('lobby') || record.camera.toLowerCase().includes('front entrance') || record.camera.toLowerCase().includes('parking lot')) {
+        branchName = mockBranches.find(b => b.id === 'branch_hq')?.name;
+    }
+  }
+
+
   const newRecord: SignInSignOutRecord = {
     ...record,
     id: `hist${mockSignInSignOutHistory.length + 1}_${Date.now()}`,
+    staffName,
+    snapshotImageUrl,
+    branchName,
   };
   mockSignInSignOutHistory.unshift(newRecord); // Add to the beginning for chronological order in UI
   return newRecord;
