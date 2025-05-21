@@ -1,17 +1,22 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DollarSign, History, Users, FileText, Settings, PlayCircle } from 'lucide-react';
+import { DollarSign, History, Users, FileText, Settings, PlayCircle, Banknote, Link as LinkIcon, Unlink, FileDown, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 // Mock data for demonstration
 const mockPayrollHistory = [
@@ -36,13 +41,171 @@ const chartConfig = {
   },
 };
 
+const mockBanks = [
+  { id: 'gtbank', name: 'GTBank' },
+  { id: 'access', name: 'Access Bank' },
+  { id: 'zenith', name: 'Zenith Bank' },
+  { id: 'uba', name: 'UBA' },
+  { id: 'firstbank', name: 'First Bank' },
+  { id: 'other', name: 'Other (Manual CSV)'},
+];
+
 export default function PayrollPage() {
+  const { toast } = useToast();
+
+  const [selectedBank, setSelectedBank] = useState<string>('');
+  const [accountNumber, setAccountNumber] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>('');
+  const [payoutSchedule, setPayoutSchedule] = useState<'monthly' | 'bi-weekly' | ''>('');
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [connectedBankInfo, setConnectedBankInfo] = useState<{ name: string; accountNumber: string; schedule: string } | null>(null);
+
+  const handleConnectBank = async () => {
+    if (!selectedBank || !accountNumber || !apiKey || !payoutSchedule) {
+      toast({ variant: 'destructive', title: 'Missing Information', description: 'Please select a bank and fill all required bank details.' });
+      return;
+    }
+    if (selectedBank === 'other') {
+        toast({ title: 'Manual CSV Selected', description: 'No connection needed for "Other". Use the CSV download option.'});
+        setConnectedBankInfo({name: "Manual CSV Upload", accountNumber: "N/A", schedule: "N/A"});
+        return;
+    }
+
+    setIsConnecting(true);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+    setIsConnecting(false);
+    
+    const bankName = mockBanks.find(b => b.id === selectedBank)?.name || 'Selected Bank';
+    setConnectedBankInfo({ name: bankName, accountNumber, schedule: payoutSchedule });
+    toast({ title: 'Bank Connected!', description: `Successfully connected to ${bankName}. Payroll data can now be (simulated) synced.` });
+  };
+
+  const handleDisconnectBank = () => {
+    const bankName = connectedBankInfo?.name;
+    setConnectedBankInfo(null);
+    setSelectedBank('');
+    setAccountNumber('');
+    setApiKey('');
+    setPayoutSchedule('');
+    toast({ title: 'Bank Disconnected', description: `${bankName || 'Bank'} integration has been disconnected.` });
+  };
+  
+  const handleDownloadCSV = () => {
+    toast({
+        title: "Payroll CSV Downloaded (Simulated)",
+        description: "A CSV file for manual bank upload would be generated here.",
+    });
+  };
+
+
   return (
     <div className="space-y-8">
       <PageHeader
         title="Payroll Management"
-        description="Manage employee salaries, run payroll cycles, and view historical data."
+        description="Manage employee salaries, run payroll cycles, view history, and integrate with your bank."
       />
+
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Banknote className="h-6 w-6 text-primary" />
+            Bank Integration & Payroll Export
+          </CardTitle>
+          <CardDescription>
+            Connect your corporate bank account for direct payroll processing or download a CSV file for manual uploads.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {connectedBankInfo ? (
+            <div className="space-y-4 p-4 border rounded-md bg-secondary/30">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-lg font-semibold text-green-500">Connected to: {connectedBankInfo.name}</p>
+                  {connectedBankInfo.name !== "Manual CSV Upload" &&
+                    <>
+                        <p className="text-sm text-muted-foreground">Account: ****{connectedBankInfo.accountNumber.slice(-4)}</p>
+                        <p className="text-sm text-muted-foreground">Payout Schedule: {connectedBankInfo.schedule.charAt(0).toUpperCase() + connectedBankInfo.schedule.slice(1)}</p>
+                    </>
+                  }
+                </div>
+                <Button onClick={handleDisconnectBank} variant="outline" size="sm">
+                  <Unlink className="mr-2 h-4 w-4" /> Disconnect
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="bank-select">Select Your Bank</Label>
+                <Select value={selectedBank} onValueChange={setSelectedBank}>
+                  <SelectTrigger id="bank-select">
+                    <SelectValue placeholder="Choose your bank..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mockBanks.map(bank => (
+                      <SelectItem key={bank.id} value={bank.id}>{bank.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedBank && selectedBank !== 'other' && (
+                <>
+                  <div>
+                    <Label htmlFor="account-number">Corporate Account Number</Label>
+                    <Input 
+                      id="account-number" 
+                      value={accountNumber} 
+                      onChange={(e) => setAccountNumber(e.target.value)} 
+                      placeholder="e.g., 0123456789" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="api-key">Bank API Key / Credentials</Label>
+                    <Input 
+                      id="api-key" 
+                      type="password" 
+                      value={apiKey} 
+                      onChange={(e) => setApiKey(e.target.value)} 
+                      placeholder="Enter your bank API key (mock)" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="payout-schedule">Payout Schedule</Label>
+                    <Select value={payoutSchedule} onValueChange={(value) => setPayoutSchedule(value as 'monthly' | 'bi-weekly' | '')}>
+                      <SelectTrigger id="payout-schedule">
+                        <SelectValue placeholder="Select schedule..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              
+              <Button onClick={handleConnectBank} disabled={isConnecting || (!selectedBank || (selectedBank !== 'other' && (!accountNumber || !apiKey || !payoutSchedule)))}>
+                {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                {selectedBank === 'other' ? 'Confirm Manual CSV Method' : 'Connect Bank'}
+              </Button>
+            </div>
+          )}
+          
+          <Separator className="my-6" />
+
+          <div>
+            <h3 className="text-md font-semibold mb-2">Manual Payroll Export</h3>
+             <Button onClick={handleDownloadCSV} variant="outline">
+                <FileDown className="mr-2 h-4 w-4" /> Download Payroll File (CSV)
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+                You can upload this CSV file to your bank's portal manually if direct integration is not available or not configured.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -54,9 +217,10 @@ export default function PayrollPage() {
             <CardDescription className="mb-4">
               Initiate a new payroll cycle for the current period. Review details before finalizing.
             </CardDescription>
-            <Button className="w-full">
+            <Button className="w-full" disabled={!connectedBankInfo && selectedBank !== 'other'}>
               <PlayCircle className="mr-2 h-5 w-5" /> Start New Payroll Cycle
             </Button>
+             {!connectedBankInfo && selectedBank !== 'other' && <p className="text-xs text-destructive mt-1">Connect bank or select manual CSV to enable.</p>}
           </CardContent>
         </Card>
 
@@ -177,7 +341,7 @@ export default function PayrollPage() {
           </Card>
           <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Tax & Compliance</CardTitle>
+                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Tax &amp; Compliance</CardTitle>
             </CardHeader>
             <CardContent>
                 <CardDescription className="mb-4">
