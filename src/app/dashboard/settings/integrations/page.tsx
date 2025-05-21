@@ -1,14 +1,14 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ExternalLink, Zap, RefreshCw, FolderSync, CheckCircle2, XCircle, Link as LinkIcon } from 'lucide-react';
+import { ExternalLink, Zap, RefreshCw, FolderSync, CheckCircle2, XCircle, Link as LinkIcon, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function IntegrationsPage() {
@@ -16,12 +16,25 @@ export default function IntegrationsPage() {
   const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false);
   const [isSlackConnected, setIsSlackConnected] = useState(true);
   const [googleDriveFolders, setGoogleDriveFolders] = useState('Recognition Snapshots, Attendance Reports');
-  const [lastGoogleDriveSync, setLastGoogleDriveSync] = useState<Date | null>(null);
-  
+  const [lastGoogleDriveSync, setLastGoogleDriveSync] = useState<string | null>(null);
+
+  const [isClockInSystemConnected, setIsClockInSystemConnected] = useState(false);
+  const [clockInSystemUrl, setClockInSystemUrl] = useState('');
+
+  useEffect(() => {
+    // Simulate fetching last sync time
+    if (isGoogleDriveConnected && !lastGoogleDriveSync) {
+        setLastGoogleDriveSync(new Date(Date.now() - 1000 * 60 * 60 * 3).toLocaleString()); // 3 hours ago
+    } else if (!isGoogleDriveConnected) {
+        setLastGoogleDriveSync(null);
+    }
+  }, [isGoogleDriveConnected, lastGoogleDriveSync]);
+
+
   const handleGoogleDriveToggle = () => {
     setIsGoogleDriveConnected(!isGoogleDriveConnected);
     if (!isGoogleDriveConnected) {
-      setLastGoogleDriveSync(new Date()); // Simulate first sync
+      setLastGoogleDriveSync(new Date().toLocaleString()); // Simulate first sync
     }
     toast({
       title: `Google Drive ${!isGoogleDriveConnected ? 'Connected' : 'Disconnected'}`,
@@ -38,12 +51,36 @@ export default function IntegrationsPage() {
   };
 
   const handleSyncNow = () => {
-    setLastGoogleDriveSync(new Date());
+    setLastGoogleDriveSync(new Date().toLocaleString());
     toast({
       title: 'Sync Initiated',
       description: 'Google Drive sync started successfully. This may take a few minutes.',
     });
   };
+
+  const handleClockInSystemToggle = () => {
+    setIsClockInSystemConnected(!isClockInSystemConnected);
+    toast({
+      title: `External Clock-In System ${!isClockInSystemConnected ? 'Connected' : 'Disconnected'}`,
+      description: `Integration has been ${!isClockInSystemConnected ? 'enabled' : 'disabled'}.`,
+    });
+  };
+
+  const handleSaveClockInSystem = () => {
+    if (isClockInSystemConnected && !clockInSystemUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'URL Required',
+        description: 'Please enter the URL for the external clock-in system.',
+      });
+      return;
+    }
+    toast({
+      title: 'Clock-In System Settings Saved',
+      description: `URL set to: ${clockInSystemUrl || 'Not configured'}. Status: ${isClockInSystemConnected ? 'Connected' : 'Disconnected'}`,
+    });
+  };
+
 
   return (
     <div className="space-y-8">
@@ -95,7 +132,7 @@ export default function IntegrationsPage() {
                 </div>
                 {lastGoogleDriveSync && (
                   <p className="text-xs text-muted-foreground">
-                    Last synced: {lastGoogleDriveSync.toLocaleString()}
+                    Last synced: {lastGoogleDriveSync}
                   </p>
                 )}
               </>
@@ -160,6 +197,53 @@ export default function IntegrationsPage() {
         </Card>
       </div>
 
+      <Card className="shadow-md">
+        <CardHeader>
+            <div className="flex items-center gap-3 mb-1">
+                <Clock className="h-8 w-8 text-primary" />
+                <CardTitle className="text-xl">External Clock-In System</CardTitle>
+            </div>
+            <CardDescription>Connect to an external web-based clock-in system to sync attendance data.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 border rounded-md">
+                <Label htmlFor="clockInSystemSwitch" className="flex flex-col space-y-1">
+                    <span>{isClockInSystemConnected ? 'Integration Active' : 'Integration Inactive'}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                    {isClockInSystemConnected ? 'Attempting to sync with the configured URL.' : 'Enable to connect to your clock-in website.'}
+                    </span>
+                </Label>
+                <Switch
+                    id="clockInSystemSwitch"
+                    checked={isClockInSystemConnected}
+                    onCheckedChange={handleClockInSystemToggle}
+                    aria-label="Toggle External Clock-In System Integration"
+                />
+            </div>
+            {isClockInSystemConnected && (
+                <div>
+                    <Label htmlFor="clockInSystemUrl">Clock-In Website URL</Label>
+                    <Input
+                        id="clockInSystemUrl"
+                        type="url"
+                        value={clockInSystemUrl}
+                        onChange={(e) => setClockInSystemUrl(e.target.value)}
+                        placeholder="https://your-clockin-system.com"
+                    />
+                </div>
+            )}
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2">
+            <Button variant="outline" disabled={!isClockInSystemConnected || !clockInSystemUrl} onClick={() => window.open(clockInSystemUrl, '_blank')}>
+                <ExternalLink className="mr-2 h-4 w-4" /> Open Clock-In Site
+            </Button>
+            <Button onClick={handleSaveClockInSystem}>
+                <LinkIcon className="mr-2 h-4 w-4" /> {isClockInSystemConnected ? 'Update Settings' : 'Save & Connect'}
+            </Button>
+        </CardFooter>
+      </Card>
+
+
        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><Zap size={20}/> Other Integrations</CardTitle>
@@ -186,3 +270,4 @@ export default function IntegrationsPage() {
     </div>
   );
 }
+
