@@ -35,7 +35,7 @@ const eveAdamsonUser = mockUsers.find(u => u.id === 'staff1')!;
 const graceHopperUser = mockUsers.find(u => u.id === 'staff3')!;
 const harryPotterUser = mockUsers.find(u => u.id === 'staff4')!;
 
-export const mockRecognitions: Recognition[] = [
+export let mockRecognitions: Recognition[] = [ // Changed to let for potential dynamic updates if needed
   {
     id: 'rec1',
     giver: mockUsers[0], // Alice
@@ -102,12 +102,20 @@ export const mockRecognitions: Recognition[] = [
 ];
 
 
-export const mockSignInSignOutHistory: SignInSignOutRecord[] = [
-  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
-  { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 28).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face' },
-  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(), type: 'signin', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
-  { id: 'hist3', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), type: 'signout', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
+// Changed to let to allow modification for real-time simulation
+export let mockSignInSignOutHistory: SignInSignOutRecord[] = [
+  { id: 'hist1', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(), type: 'signin', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
+  { id: 'hist_unrec1', staffMemberId: 'unrecognized_001', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7.5).toISOString(), type: 'sighting', camera: 'Lobby Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face1' },
+  { id: 'hist2', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString(), type: 'signin', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
+  { id: 'hist1_out', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), type: 'signout', camera: 'Front Entrance Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA' },
   { id: 'hist4', staffMemberId: 'staff4', staffName: 'Harry Potter', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: 'signin', camera: 'Meeting Room A', snapshotImageUrl: 'https://placehold.co/80x80.png?text=HP' },
+  { id: 'hist3_out', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), type: 'signout', camera: 'Lab Cam 1', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH' },
+  // Add more entries for variety
+  { id: 'hist5', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 30).toISOString(), type: 'signin', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA2' }, // Yesterday
+  { id: 'hist6', staffMemberId: 'staff1', staffName: 'Eve Adamson', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60 * 8).toISOString(), type: 'signout', camera: 'Main Office Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=EA3' }, // Yesterday
+  { id: 'hist7', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 15).toISOString(), type: 'signin', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH2' }, // Yesterday
+  { id: 'hist8', staffMemberId: 'staff3', staffName: 'Grace Hopper', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 60 * 9).toISOString(), type: 'signout', camera: 'Lab Cam 2', snapshotImageUrl: 'https://placehold.co/80x80.png?text=GH3' }, // Yesterday
+  { id: 'hist_unrec2', staffMemberId: 'unrecognized_002', staffName: 'Unrecognized Person', timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), type: 'sighting', camera: 'Parking Lot Cam', snapshotImageUrl: 'https://placehold.co/80x80.png?text=Face2' },
 ];
 
 export const mockCameras: Camera[] = [
@@ -116,6 +124,9 @@ export const mockCameras: Camera[] = [
   { id: 'cam3', name: 'Lobby Cam', rtspUrl: 'rtsp://example.com/cam3', status: 'online' },
   { id: 'cam4', name: 'Warehouse Cam', rtspUrl: 'rtsp://example.com/cam4', status: 'connecting' },
   { id: 'cam5', name: 'Meeting Room A', rtspUrl: 'rtsp://example.com/cam5', status: 'online' },
+  { id: 'cam6', name: 'Main Office Cam', rtspUrl: 'rtsp://example.com/cam6', status: 'online' },
+  { id: 'cam7', name: 'Lab Cam 2', rtspUrl: 'rtsp://example.com/cam7', status: 'online' },
+  { id: 'cam8', name: 'Parking Lot Cam', rtspUrl: 'rtsp://example.com/cam8', status: 'online' },
 ];
 
 export const mockNotifications: AppNotification[] = [
@@ -178,3 +189,13 @@ export const mockAuditLogEntries: AuditLogEntry[] = [
     ipAddress: '192.168.1.100',
   },
 ];
+
+// Function to add a new sign-in/out record, can be called to simulate real-time events
+export function addSignInSignOutRecord(record: Omit<SignInSignOutRecord, 'id'>): SignInSignOutRecord {
+  const newRecord: SignInSignOutRecord = {
+    ...record,
+    id: `hist${mockSignInSignOutHistory.length + 1}_${Date.now()}`,
+  };
+  mockSignInSignOutHistory.unshift(newRecord); // Add to the beginning for chronological order in UI
+  return newRecord;
+}

@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { StaffMember, Recognition } from '@/lib/types';
-import { mockStaffMembers, mockRecognitions } from '@/lib/mockData'; 
+import type { StaffMember, Recognition, SignInSignOutRecord } from '@/lib/types';
+import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras } from '@/lib/mockData'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,11 +14,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, UploadCloud, Award, Sparkles, AlertTriangle, UserRoundCheck, Info, Clock, UserCog } from 'lucide-react';
 import Image from 'next/image';
 import { generatePerformanceHighlights, GeneratePerformanceHighlightsInput, GeneratePerformanceHighlightsOutput } from '@/ai/flows/generate-performance-highlights';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { StaffIdCard } from './StaffIdCard'; // Import the new ID card component
+import { StaffIdCard } from './StaffIdCard';
 
 const staffFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -30,6 +30,17 @@ const staffFormSchema = z.object({
 type StaffFormValues = z.infer<typeof staffFormSchema>;
 
 interface StaffManagementTableProps {}
+
+// Helper for individual attendance log modal
+const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }) => {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+  useEffect(() => {
+    setFormattedDate(new Date(isoTimestamp).toLocaleString());
+  }, [isoTimestamp]);
+  if (formattedDate === null) return <span className="text-xs text-muted-foreground">Loading...</span>;
+  return <>{formattedDate}</>;
+};
+
 
 export function StaffManagementTable({}: StaffManagementTableProps) {
   const [staffList, setStaffList] = useState<StaffMember[]>(mockStaffMembers);
@@ -48,6 +59,11 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
   const [newlyRegisteredStaff, setNewlyRegisteredStaff] = useState<StaffMember | null>(null);
 
+  const [isAttendanceLogModalOpen, setIsAttendanceLogModalOpen] = useState(false);
+  const [selectedStaffForAttendance, setSelectedStaffForAttendance] = useState<StaffMember | null>(null);
+  const [individualAttendanceLog, setIndividualAttendanceLog] = useState<SignInSignOutRecord[]>([]);
+  const [lastClockAction, setLastClockAction] = useState<'signin' | 'signout'>('signout');
+
 
   const { toast } = useToast();
   const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<StaffFormValues>({
@@ -57,7 +73,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   
   const currentImageUrl = watch('imageUrl');
 
-  // Re-initialize previewImage when editingStaff or currentImageUrl changes
   useEffect(() => {
     if (editingStaff) {
       setPreviewImage(editingStaff.imageUrl || currentImageUrl || null);
@@ -65,6 +80,22 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
        setPreviewImage(currentImageUrl || null);
     }
   }, [editingStaff, currentImageUrl]);
+  
+  useEffect(() => {
+    if (selectedStaffForAttendance) {
+      const logs = mockSignInSignOutHistory
+        .filter(log => log.staffMemberId === selectedStaffForAttendance.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setIndividualAttendanceLog(logs);
+      // Determine last action for the simulate button
+      if (logs.length > 0 && logs[0].type === 'signin') {
+        setLastClockAction('signin');
+      } else {
+        setLastClockAction('signout');
+      }
+    }
+  }, [selectedStaffForAttendance, mockSignInSignOutHistory]);
+
 
   const recognitionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -77,14 +108,12 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   const openModalForEdit = (staff: StaffMember) => {
     setEditingStaff(staff);
     reset({ name: staff.name, email: staff.email, imageUrl: staff.imageUrl || '', department: staff.department || '' });
-    // setPreviewImage(staff.imageUrl); // This will be handled by useEffect
     setIsModalOpen(true);
   };
 
   const openModalForNew = () => {
     setEditingStaff(null);
     reset({ name: '', email: '', imageUrl: '', department: '' });
-    // setPreviewImage(null); // This will be handled by useEffect
     setIsModalOpen(true);
   };
 
@@ -92,7 +121,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     setIsModalOpen(false);
     setEditingStaff(null);
     reset();
-    setPreviewImage(null); // Explicitly clear preview on close
+    setPreviewImage(null);
   };
 
   const onSubmit = async (data: StaffFormValues) => {
@@ -105,7 +134,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       closeModal();
     } else {
       const newStaff: StaffMember = {
-        id: `staff${staffList.length + 1}-${Math.random().toString(36).substring(2, 7)}`, // More unique ID
+        id: `staff${staffList.length + 1}-${Math.random().toString(36).substring(2, 7)}`,
         ...data,
         imageUrl: data.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}`,
         status: 'active', 
@@ -116,9 +145,9 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         description: `${newStaff.name} has been successfully added.`,
         action: <UserRoundCheck className="h-5 w-5 text-green-500" />,
       });
-      setNewlyRegisteredStaff(newStaff); // Store new staff for ID card
-      setIsIdCardModalOpen(true); // Open ID card modal
-      closeModal(); // Close registration modal
+      setNewlyRegisteredStaff(newStaff);
+      setIsIdCardModalOpen(true);
+      closeModal();
     }
     setIsSubmitting(false);
   };
@@ -139,13 +168,10 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        setPreviewImage(result); // Update preview for immediate feedback
-        setValue('imageUrl', result, { shouldValidate: true }); // Update form value
+        setPreviewImage(result);
+        setValue('imageUrl', result, { shouldValidate: true });
       };
       reader.readAsDataURL(file);
-    } else {
-      // If no file is selected (e.g., user cancels file dialog), don't clear potentially pasted URL
-      // Only clear preview if user explicitly removes an uploaded image (not implemented here)
     }
   };
 
@@ -185,6 +211,40 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     } finally {
       setIsFetchingHighlights(false);
     }
+  };
+
+  const handleShowAttendanceLog = (staff: StaffMember) => {
+    setSelectedStaffForAttendance(staff);
+    setIsAttendanceLogModalOpen(true);
+  };
+  
+  const handleSimulateClockAction = () => {
+    if (!selectedStaffForAttendance) return;
+    
+    const newActionType = lastClockAction === 'signout' ? 'signin' : 'signout';
+    const randomCamera = mockCameras[Math.floor(Math.random() * mockCameras.length)];
+
+    addSignInSignOutRecord({
+        staffMemberId: selectedStaffForAttendance.id,
+        staffName: selectedStaffForAttendance.name,
+        timestamp: new Date().toISOString(),
+        type: newActionType,
+        camera: randomCamera.name,
+        snapshotImageUrl: selectedStaffForAttendance.imageUrl,
+    });
+    
+    // Force re-fetch/re-filter of logs for the modal
+    const updatedLogs = mockSignInSignOutHistory
+        .filter(log => log.staffMemberId === selectedStaffForAttendance.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setIndividualAttendanceLog(updatedLogs);
+    
+    setLastClockAction(newActionType); // Toggle for next simulation
+    
+    toast({
+        title: `Mock ${newActionType.charAt(0).toUpperCase() + newActionType.slice(1)} Recorded`,
+        description: `${selectedStaffForAttendance.name} ${newActionType === 'signin' ? 'clocked in' : 'clocked out'} at ${randomCamera.name}.`,
+    });
   };
 
 
@@ -254,6 +314,9 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                   {staff.recognitionsReceived}
                 </TableCell>
                 <TableCell className="text-right space-x-1">
+                   <Button variant="outline" size="xs" onClick={() => handleShowAttendanceLog(staff)} disabled={isSubmitting}>
+                    <Clock className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">Attendance</span>
+                  </Button>
                   <Button variant="outline" size="xs" onClick={() => handleShowHighlights(staff)} disabled={isSubmitting || isFetchingHighlights}>
                     <Sparkles className="h-3 w-3 sm:mr-1" /> <span className="hidden sm:inline">AI Highlights</span>
                   </Button>
@@ -284,7 +347,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-                {editingStaff ? <Edit3 className="h-5 w-5" /> : <UserRoundCheck className="h-5 w-5 text-primary" />}
+                {editingStaff ? <UserCog className="h-5 w-5" /> : <UserRoundCheck className="h-5 w-5 text-primary" />}
                 {editingStaff ? 'Edit Staff Member' : 'Register New Staff Member'}
             </DialogTitle>
             <DialogDescription>
@@ -316,20 +379,20 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
             <div>
                 <Label htmlFor="imageUrl">Profile Image</Label>
                 <div className="mt-1 flex items-center gap-4">
-                    {(previewImage) && ( // Use previewImage directly here
+                    {(previewImage) && (
                         <Image 
                             src={previewImage}
                             alt="Profile preview"
                             width={64} height={64}
                             className="h-16 w-16 rounded-full object-cover border-2 border-muted"
                             data-ai-hint="person photo"
-                            onError={() => setPreviewImage('https://placehold.co/64x64.png?text=Error')} // Fallback for broken image preview
+                            onError={() => setPreviewImage('https://placehold.co/64x64.png?text=Error')}
                         />
                     )}
                     <Input 
                         id="imageFile" 
                         type="file" 
-                        accept="image/png, image/jpeg, image/webp, image/gif" // Accept more image types
+                        accept="image/png, image/jpeg, image/webp, image/gif"
                         onChange={handleImageInputChange}
                         className="hidden" 
                         disabled={isSubmitting}
@@ -346,7 +409,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
                         value={field.value || ''}
                         onChange={(e) => {
                             field.onChange(e);
-                            setPreviewImage(e.target.value); // Update preview when URL is typed/pasted
+                            setPreviewImage(e.target.value);
                         }}
                         className="mt-1 text-xs"
                         disabled={isSubmitting}
@@ -416,7 +479,6 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
       {newlyRegisteredStaff && (
         <Dialog open={isIdCardModalOpen} onOpenChange={setIsIdCardModalOpen}>
           <DialogContent className="sm:max-w-xs p-0 border-0 bg-transparent shadow-none">
-            {/* DialogHeader and DialogTitle removed for a cleaner ID card presentation */}
             <StaffIdCard staff={newlyRegisteredStaff} />
             <DialogFooter className="sm:justify-center pt-4 px-6 pb-6 bg-background rounded-b-lg">
               <DialogClose asChild>
@@ -435,7 +497,82 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Individual Attendance Log Dialog */}
+      {selectedStaffForAttendance && (
+        <Dialog open={isAttendanceLogModalOpen} onOpenChange={setIsAttendanceLogModalOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Attendance Log: {selectedStaffForAttendance.name}
+              </DialogTitle>
+              <DialogDescription>
+                Showing clock-in and clock-out records for this staff member.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] py-4 pr-2">
+              {individualAttendanceLog.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Timestamp</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Camera</TableHead>
+                      <TableHead>Snapshot</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {individualAttendanceLog.map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <ClientSideFormattedTimestamp isoTimestamp={log.timestamp} />
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            log.type === 'signin' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                            log.type === 'signout' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                          }`}>
+                            {log.type.charAt(0).toUpperCase() + log.type.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{log.camera}</TableCell>
+                        <TableCell>
+                          {log.snapshotImageUrl ? (
+                            <Avatar className="h-8 w-8 rounded-sm">
+                              <AvatarImage src={log.snapshotImageUrl} alt={log.staffName} data-ai-hint="person face" className="object-cover" />
+                              <AvatarFallback className="rounded-sm text-xs">
+                                {log.staffName.substring(0,2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No attendance records found for {selectedStaffForAttendance.name}.</p>
+              )}
+            </ScrollArea>
+            <DialogFooter className="pt-2 justify-between">
+               <Button 
+                  variant="secondary" 
+                  onClick={handleSimulateClockAction}
+                  disabled={isSubmitting}
+                >
+                  <Clock className="mr-2 h-4 w-4"/> Simulate {lastClockAction === 'signout' ? 'Clock-In' : 'Clock-Out'}
+               </Button>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" onClick={() => setIsAttendanceLogModalOpen(false)}>Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
-
