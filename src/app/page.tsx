@@ -1,20 +1,24 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
+  const [message, setMessage] = useState('Loading Falcon T25... Please wait.');
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace('/login');
-    }, 5000); // Display splash screen for 5 seconds
+      setMessage('Initializing application state...');
+      // In a real app, you might perform some checks here
+      // For now, we directly navigate to auth-check
+      router.replace('/auth-check');
+    }, 2500); // Reduced splash time, as auth-check will handle further redirection logic
 
-    return () => clearTimeout(timer); // Cleanup the timer if the component unmounts
+    return () => clearTimeout(timer);
   }, [router]);
 
   return (
@@ -24,7 +28,7 @@ export default function HomePage() {
       </div>
       <div className="flex items-center text-lg text-muted-foreground">
         <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-        <span>Loading Falcon T25... Please wait.</span>
+        <span>{message}</span>
       </div>
     </div>
   );
