@@ -76,13 +76,18 @@ export default function CompanyRegistrationPage() {
   const onSubmit = async (data: CompanyRegistrationFormValues) => {
     setIsLoading(true);
     console.log('Company Registration Data (Simulated):', data);
-    // Simulate API call
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Store company data in localStorage for demo purposes to pass to next step
-    // IMPORTANT: Not secure for sensitive data in production.
     try {
       localStorage.setItem('falconT25CompanyRegData', JSON.stringify({ companyName: data.companyName }));
+      if (data.companyLogo && data.companyName) {
+        // Simulate storing a URL for the logo. In a real app, this would be the URL after uploading to a server.
+        const companyInitials = data.companyName.substring(0, 2).toUpperCase() || 'LG';
+        localStorage.setItem('falconT25CompanyLogoUrl', `https://placehold.co/100x100.png?text=${companyInitials}`);
+      } else {
+        localStorage.removeItem('falconT25CompanyLogoUrl');
+      }
     } catch (e) {
       console.error("Failed to save to localStorage", e);
     }
@@ -101,7 +106,7 @@ export default function CompanyRegistrationPage() {
       <Card className="w-full max-w-2xl shadow-2xl animate-in slide-in-from-bottom-12 duration-700 ease-out">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <AppLogo iconSize={48} textSize="text-4xl" /> {/* Updated size here */}
+            <AppLogo iconSize={48} textSize="text-4xl" />
           </div>
           <CardTitle className="text-2xl flex items-center justify-center gap-2">
             <Building2 className="h-7 w-7 text-primary" />

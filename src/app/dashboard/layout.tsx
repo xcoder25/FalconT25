@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react'; // Added useEffect, useState
 import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -17,7 +17,7 @@ import {
   SidebarMenuSubItem,
   SidebarTrigger,
   SidebarInset,
-  useSidebar, // Import useSidebar
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ import {
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; 
 import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
 import { SheetTitle } from '@/components/ui/sheet'; 
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state of company logo
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -81,13 +82,38 @@ const navItems: NavigationItem[] = [
   },
 ];
 
-// New inner component that consumes SidebarContext
 function MyDashboardUI({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [openSettings, setOpenSettings] = React.useState(isSettingsPathActive(pathname));
   const { setIsLoading } = useLoading();
-  const { isMobile } = useSidebar(); // Consuming context here
+  const { isMobile } = useSidebar();
+
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [isCompanyDataLoading, setIsCompanyDataLoading] = useState(true);
+
+  useEffect(() => {
+    // Load company data from localStorage on client side
+    try {
+      const storedLogoUrl = localStorage.getItem('falconT25CompanyLogoUrl');
+      const companyDataString = localStorage.getItem('falconT25CompanyRegData');
+      let name = 'Company'; // Default name
+      if (companyDataString) {
+        const companyData = JSON.parse(companyDataString);
+        name = companyData.companyName || 'Company';
+        setCompanyName(name);
+      }
+      // If no specific logo URL, use a placeholder with company initials
+      setCompanyLogoUrl(storedLogoUrl || `https://placehold.co/100x100.png?text=${name.substring(0,2).toUpperCase() || 'CO'}`);
+    } catch (e) {
+      console.error("Error reading company data from localStorage", e);
+      setCompanyLogoUrl(`https://placehold.co/100x100.png?text=ERR`); // Fallback placeholder
+      setCompanyName('Company');
+    } finally {
+      setIsCompanyDataLoading(false);
+    }
+  }, []);
 
   function isSettingsPathActive(currentPath: string) {
     return navItems.find(item => item.label === 'Settings')?.children?.some(child => currentPath.startsWith(child.href)) || false;
@@ -104,7 +130,6 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
   };
 
   React.useEffect(() => {
-    // This effect runs when the route has changed
     setIsLoading(false);
   }, [pathname, setIsLoading]);
 
@@ -197,7 +222,18 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="md:hidden" />
           </div>
           <div>
-            <AppLogo showIcon={true} iconSize={28} textSize="text-xl" />
+            {isCompanyDataLoading ? (
+              <Skeleton className="h-8 w-8 rounded-full" />
+            ) : companyLogoUrl && companyName ? (
+              <AppLogo
+                companyLogoUrl={companyLogoUrl}
+                companyName={companyName}
+                showIcon={true}
+                iconSize={32}
+              />
+            ) : (
+              <AppLogo showIcon={true} iconSize={32} textSize="text-xl" />
+            )}
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
