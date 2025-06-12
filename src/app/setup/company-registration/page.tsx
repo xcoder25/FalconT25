@@ -101,7 +101,7 @@ export default function CompanyRegistrationPage() {
       <Card className="w-full max-w-2xl shadow-2xl animate-in slide-in-from-bottom-12 duration-700 ease-out">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <AppLogo iconSize={40} textSize="text-3xl" />
+            <AppLogo iconSize={48} textSize="text-4xl" /> {/* Updated size here */}
           </div>
           <CardTitle className="text-2xl flex items-center justify-center gap-2">
             <Building2 className="h-7 w-7 text-primary" />
