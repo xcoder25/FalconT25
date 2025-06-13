@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react'; // Added useEffect, useState
+import React, { useEffect, useState } from 'react'; 
 import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
@@ -42,6 +42,7 @@ import {
   ClipboardList,
   LayoutGrid,
   Shield,
+  Building2, // Added for Company Profile
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -54,7 +55,7 @@ import {
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext'; 
 import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
 import { SheetTitle } from '@/components/ui/sheet'; 
-import { Skeleton } from '@/components/ui/skeleton'; // For loading state of company logo
+import { Skeleton } from '@/components/ui/skeleton'; 
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -71,6 +72,7 @@ const navItems: NavigationItem[] = [
     label: 'Settings',
     icon: Settings,
     children: [
+      { href: '/dashboard/settings/company-profile', label: 'Company Profile', icon: Building2 },
       { href: '/dashboard/settings/notifications', label: 'Notifications', icon: Bell },
       { href: '/dashboard/settings/cameras', label: 'Cameras', icon: CameraIcon },
       { href: '/dashboard/settings/security', label: 'Security', icon: Shield },
@@ -94,21 +96,19 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
   const [isCompanyDataLoading, setIsCompanyDataLoading] = useState(true);
 
   useEffect(() => {
-    // Load company data from localStorage on client side
     try {
       const storedLogoUrl = localStorage.getItem('falconT25CompanyLogoUrl');
       const companyDataString = localStorage.getItem('falconT25CompanyRegData');
-      let name = 'Company'; // Default name
+      let name = 'Company'; 
       if (companyDataString) {
         const companyData = JSON.parse(companyDataString);
         name = companyData.companyName || 'Company';
         setCompanyName(name);
       }
-      // If no specific logo URL, use a placeholder with company initials
       setCompanyLogoUrl(storedLogoUrl || `https://placehold.co/100x100.png?text=${name.substring(0,2).toUpperCase() || 'CO'}`);
     } catch (e) {
       console.error("Error reading company data from localStorage", e);
-      setCompanyLogoUrl(`https://placehold.co/100x100.png?text=ERR`); // Fallback placeholder
+      setCompanyLogoUrl(`https://placehold.co/100x100.png?text=ERR`); 
       setCompanyName('Company');
     } finally {
       setIsCompanyDataLoading(false);
@@ -134,6 +134,17 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
   }, [pathname, setIsLoading]);
 
   const handleLogout = () => {
+    // In a real app, clear Firebase auth state, tokens, etc.
+    // For now, just clear relevant localStorage items and redirect.
+    try {
+      localStorage.removeItem('falconT25SetupComplete');
+      localStorage.removeItem('falconT25AdminEmail');
+      // Potentially remove company specific data too if you want a full reset experience on logout for demo
+      // localStorage.removeItem('falconT25CompanyRegData');
+      // localStorage.removeItem('falconT25CompanyLogoUrl');
+    } catch (e) {
+      console.error("Error clearing localStorage on logout", e);
+    }
     router.push('/login');
   };
 

@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppLogo } from '@/components/shared/AppLogo';
-import { Eye, EyeOff, Loader2, Mic, AlertTriangle, CheckCircle2 } from 'lucide-react'; // Removed Building, UserPlus, UploadCloud
+import { Eye, EyeOff, Loader2, Mic, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { auth, GoogleAuthProvider, signInWithPopup } from '@/lib/firebase'; // Firebase auth
 
 const loginFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -23,10 +24,22 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 type VoiceLoginStatus = 'idle' | 'prompting' | 'denied' | 'recording' | 'authenticating' | 'success' | 'error';
 
+const GoogleIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    <path d="M1 1h22v22H1z" fill="none"/>
+  </svg>
+);
+
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isGoogleLoginLoading, setIsGoogleLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,13 +52,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Prefill email if admin just completed setup
     try {
       const adminEmail = localStorage.getItem('falconT25AdminEmail');
       if (adminEmail) {
         loginForm.setValue('email', adminEmail);
-        // Optional: remove it after use if it's a one-time prefill
-        // localStorage.removeItem('falconT25AdminEmail');
       }
     } catch (e) {
       console.error("Error reading admin email from localStorage", e);
@@ -57,15 +67,19 @@ export default function LoginPage() {
     setIsLoginLoading(true);
     setLoginError('');
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // Updated credentials to use the one potentially set during admin setup
-    // Or keep your default for testing if admin setup flow is not always run
     const expectedEmail = localStorage.getItem('falconT25AdminEmail') || 'xcoder2442@gmail.com';
-    const expectedPassword = 'password123'; // This should match what admin setup would use or a known default
+    const expectedPassword = 'password123'; 
 
-    if (data.email.toLowerCase() === expectedEmail.toLowerCase() && data.password === expectedPassword) { // Using a generic password for now
+    if (data.email.toLowerCase() === expectedEmail.toLowerCase() && data.password === expectedPassword) {
+      try {
+        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete
+      } catch (e) { console.error("Error setting setupComplete flag", e); }
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
       router.push('/dashboard');
-    } else if (data.email.toLowerCase() === 'xcoder2442@gmail.com' && data.password === '123456'){ // Fallback for original credentials
+    } else if (data.email.toLowerCase() === 'xcoder2442@gmail.com' && data.password === '123456'){ 
+      try {
+        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete
+      } catch (e) { console.error("Error setting setupComplete flag", e); }
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
       router.push('/dashboard');
     }
@@ -74,6 +88,40 @@ export default function LoginPage() {
       loginForm.resetField('password');
     }
     setIsLoginLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoginLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      // In a real app, you'd use the result from signInWithPopup for user info and session management
+      const result = await signInWithPopup(auth, provider); 
+      console.log('Google Sign-In Success (Mock):', result.user);
+      
+      // Simulate successful login actions
+      try {
+        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete for auth-check
+        // Optionally, store some mock user info if your app uses it
+        localStorage.setItem('falconT25AdminEmail', result.user.email || 'google.user@example.com');
+      } catch (e) {
+        console.error("Error saving to localStorage after Google sign-in", e);
+      }
+
+      toast({
+        title: 'Google Sign-In Successful!',
+        description: `Welcome, ${result.user.displayName || 'User'}! Redirecting...`,
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Google Sign-In Error (Mock):', error);
+      toast({
+        variant: 'destructive',
+        title: 'Google Sign-In Failed (Mock)',
+        description: error.message || 'Could not sign in with Google. Please try again.',
+      });
+    } finally {
+      setIsGoogleLoginLoading(false);
+    }
   };
   
   const handleVoiceLogin = async () => {
@@ -138,7 +186,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="admin@yourcompany.com"
                   {...loginForm.register('email')}
-                  disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
+                  disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
                   className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                 />
                 {loginForm.formState.errors.email && <p className="text-sm text-destructive">{loginForm.formState.errors.email.message}</p>}
@@ -151,7 +199,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="●●●●●●"
                     {...loginForm.register('password')}
-                    disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
+                    disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
                     className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                   />
                   <Button
@@ -174,7 +222,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out"
-                disabled={isLoginLoading || voiceLoginStatus !== 'idle'}
+                disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
               >
                 {isLoginLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -186,8 +234,22 @@ export default function LoginPage() {
                 type="button"
                 variant="outline"
                 className="w-full group"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoginLoading || isLoginLoading || voiceLoginStatus !== 'idle'}
+              >
+                {isGoogleLoginLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <GoogleIcon />
+                )}
+                Sign in with Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full group"
                 onClick={handleVoiceLogin}
-                disabled={isLoginLoading || (voiceLoginStatus !== 'idle' && voiceLoginStatus !== 'denied' && voiceLoginStatus !== 'error')}
+                disabled={isLoginLoading || isGoogleLoginLoading || (voiceLoginStatus !== 'idle' && voiceLoginStatus !== 'denied' && voiceLoginStatus !== 'error')}
               >
                 {voiceLoginStatus === 'prompting' || voiceLoginStatus === 'recording' || voiceLoginStatus === 'authenticating' ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
