@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -7,14 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
-import { ArrowDownUp, FilterX, FileText, FileDown, ClipboardList } from 'lucide-react';
+import { ArrowDownUp, FilterX, FileText, FileDown, ClipboardList, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import type { AuditLogEntry } from '@/lib/types';
-import { mockAuditLogEntries } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useRealtimeAuditLogs } from '@/hooks/useRealtime';
 
 const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }) => {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
@@ -31,7 +30,7 @@ const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }
 
 export default function AuditLogsPage() {
   const { toast } = useToast();
-  const [auditData, setAuditData] = useState<AuditLogEntry[]>(mockAuditLogEntries);
+  const { logs: auditData, isLoading } = useRealtimeAuditLogs(200);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sortColumn, setSortColumn] = useState<'userName' | 'timestamp' | 'action' | 'details' | null>(null);
@@ -208,7 +207,13 @@ export default function AuditLogsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedLogs.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : filteredAndSortedLogs.length > 0 ? (
               filteredAndSortedLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell>

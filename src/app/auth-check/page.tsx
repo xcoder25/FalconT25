@@ -3,48 +3,55 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 import { AppLogo } from '@/components/shared/AppLogo';
-
-// Mock function to check setup status. In a real app, this would involve an API call or checking secure storage.
-const checkSetupStatus = async (): Promise<boolean> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  // For demo purposes, we'll use localStorage.
-  // IMPORTANT: localStorage is not secure for actual auth state in a production app.
-  const setupComplete = localStorage.getItem('falconT25SetupComplete') === 'true';
-  return setupComplete;
-};
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function AuthCheckPage() {
   const router = useRouter();
-  const [status, setStatus] = useState('Checking application status...');
+  const [status, setStatus] = useState('Verifying session...');
 
   useEffect(() => {
-    const verifySetup = async () => {
-      const isSetupDone = await checkSetupStatus();
-      if (isSetupDone) {
-        setStatus('Setup complete. Redirecting to login...');
-        router.replace('/login');
+    // Wait for Firebase to resolve auth state
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Already authenticated — go straight to dashboard
+        setStatus('Session found. Loading dashboard...');
+        router.replace('/dashboard');
       } else {
-        setStatus('Initial setup required. Redirecting to registration...');
-        router.replace('/setup/company-registration');
+        // Check if initial setup has been completed
+        try {
+          const setupComplete = localStorage.getItem('falconT25SetupComplete') === 'true';
+          if (setupComplete) {
+            setStatus('Redirecting to login...');
+            router.replace('/login');
+          } else {
+            setStatus('First time setup required...');
+            router.replace('/setup/company-registration');
+          }
+        } catch {
+          router.replace('/login');
+        }
       }
-    };
+    });
 
-    verifySetup();
+    return () => unsubscribe();
   }, [router]);
 
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-background text-foreground p-4">
-      <AppLogo iconSize={48} textSize="text-3xl" className="mb-8" />
-      <div className="flex items-center text-lg text-muted-foreground">
-        <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-        <span>{status}</span>
+    <div className="flex flex-col min-h-screen items-center justify-center bg-background text-foreground p-4 gap-6">
+      <AppLogo iconSize={48} textSize="text-3xl" />
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">{status}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50">
+          <Shield className="h-3 w-3" />
+          <span>Secured with Firebase Authentication</span>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-4">
-        (This is a simulated check. In a real app, this involves secure verification.)
-      </p>
     </div>
   );
 }

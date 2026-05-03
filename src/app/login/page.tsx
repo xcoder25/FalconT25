@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { auth, GoogleAuthProvider, signInWithPopup } from '@/lib/firebase'; // Firebase auth
+import { useAuth } from '@/contexts/AuthContext';
 
 const loginFormSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -38,6 +37,8 @@ const GoogleIcon = () => (
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { login, loginWithGoogle, isLoading: isAuthLoading, error: authError } = useAuth();
+  
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [isGoogleLoginLoading, setIsGoogleLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -66,57 +67,29 @@ export default function LoginPage() {
   const handleLogin = async (data: LoginFormValues) => {
     setIsLoginLoading(true);
     setLoginError('');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const expectedEmail = localStorage.getItem('falconT25AdminEmail') || 'xcoder2442@gmail.com';
-    const expectedPassword = 'password123'; 
-
-    if (data.email.toLowerCase() === expectedEmail.toLowerCase() && data.password === expectedPassword) {
-      try {
-        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete
-      } catch (e) { console.error("Error setting setupComplete flag", e); }
+    try {
+      await login(data.email, data.password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      router.push('/dashboard');
-    } else if (data.email.toLowerCase() === 'xcoder2442@gmail.com' && data.password === '123456'){ 
-      try {
-        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete
-      } catch (e) { console.error("Error setting setupComplete flag", e); }
-      toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      router.push('/dashboard');
-    }
-    else {
-      setLoginError('Invalid username or password.');
+    } catch (err: any) {
+      setLoginError(err.message || 'Login failed.');
       loginForm.resetField('password');
+    } finally {
+      setIsLoginLoading(false);
     }
-    setIsLoginLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoginLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      // In a real app, you'd use the result from signInWithPopup for user info and session management
-      const result = await signInWithPopup(auth, provider); 
-      console.log('Google Sign-In Success (Mock):', result.user);
-      
-      // Simulate successful login actions
-      try {
-        localStorage.setItem('falconT25SetupComplete', 'true'); // Ensure setup is marked complete for auth-check
-        // Optionally, store some mock user info if your app uses it
-        localStorage.setItem('falconT25AdminEmail', result.user.email || 'google.user@example.com');
-      } catch (e) {
-        console.error("Error saving to localStorage after Google sign-in", e);
-      }
-
+      await loginWithGoogle();
       toast({
         title: 'Google Sign-In Successful!',
-        description: `Welcome, ${result.user.displayName || 'User'}! Redirecting...`,
+        description: `Redirecting...`,
       });
-      router.push('/dashboard');
     } catch (error: any) {
-      console.error('Google Sign-In Error (Mock):', error);
       toast({
         variant: 'destructive',
-        title: 'Google Sign-In Failed (Mock)',
+        title: 'Google Sign-In Failed',
         description: error.message || 'Could not sign in with Google. Please try again.',
       });
     } finally {
@@ -149,6 +122,8 @@ export default function LoginPage() {
 
       setVoiceLoginStatus('success');
       setVoiceLoginMessage('Voice recognized! Logging in...');
+      
+      // MOCK voice login success
       toast({ title: 'Voice Login Successful!', description: 'Redirecting to dashboard...' });
       router.push('/dashboard');
 
@@ -186,7 +161,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="admin@yourcompany.com"
                   {...loginForm.register('email')}
-                  disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
+                  disabled={isLoginLoading || isAuthLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
                   className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                 />
                 {loginForm.formState.errors.email && <p className="text-sm text-destructive">{loginForm.formState.errors.email.message}</p>}
@@ -199,7 +174,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="●●●●●●"
                     {...loginForm.register('password')}
-                    disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
+                    disabled={isLoginLoading || isAuthLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
                     className="bg-input text-foreground border-border placeholder:text-muted-foreground"
                   />
                   <Button
@@ -217,14 +192,15 @@ export default function LoginPage() {
                 {loginForm.formState.errors.password && <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>}
               </div>
               {loginError && <p className="text-sm text-destructive">{loginError}</p>}
+              {authError && <p className="text-sm text-destructive">{authError}</p>}
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/50 group transition-all duration-300 ease-in-out"
-                disabled={isLoginLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
+                disabled={isLoginLoading || isAuthLoading || voiceLoginStatus !== 'idle' || isGoogleLoginLoading}
               >
-                {isLoginLoading ? (
+                {isLoginLoading || isAuthLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <span className="transition-transform group-hover:scale-105 inline-block">Login</span>
@@ -235,7 +211,7 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full group"
                 onClick={handleGoogleSignIn}
-                disabled={isGoogleLoginLoading || isLoginLoading || voiceLoginStatus !== 'idle'}
+                disabled={isGoogleLoginLoading || isAuthLoading || isLoginLoading || voiceLoginStatus !== 'idle'}
               >
                 {isGoogleLoginLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -249,7 +225,7 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full group"
                 onClick={handleVoiceLogin}
-                disabled={isLoginLoading || isGoogleLoginLoading || (voiceLoginStatus !== 'idle' && voiceLoginStatus !== 'denied' && voiceLoginStatus !== 'error')}
+                disabled={isLoginLoading || isAuthLoading || isGoogleLoginLoading || (voiceLoginStatus !== 'idle' && voiceLoginStatus !== 'denied' && voiceLoginStatus !== 'error')}
               >
                 {voiceLoginStatus === 'prompting' || voiceLoginStatus === 'recording' || voiceLoginStatus === 'authenticating' ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 

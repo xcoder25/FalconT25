@@ -5,14 +5,15 @@ import React from 'react';
 import Image from 'next/image';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockCameras } from '@/lib/mockData';
 import type { Camera } from '@/lib/types';
-import { LayoutGrid, VideoOff } from 'lucide-react';
+import { LayoutGrid, VideoOff, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useRealtimeCameras } from '@/hooks/useRealtime';
 
 export default function MultiCameraFeedPage() {
-  const onlineCameras = mockCameras.filter(cam => cam.status === 'online');
-  const offlineCameras = mockCameras.filter(cam => cam.status !== 'online');
+  const { cameras, isLoading } = useRealtimeCameras();
+  const onlineCameras = cameras.filter(cam => cam.status === 'online');
+  const offlineCameras = cameras.filter(cam => cam.status !== 'online');
 
   return (
     <div className="space-y-6">
@@ -23,7 +24,11 @@ export default function MultiCameraFeedPage() {
         <LayoutGrid className="h-8 w-8 text-primary" />
       </PageHeader>
 
-      {mockCameras.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : cameras.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

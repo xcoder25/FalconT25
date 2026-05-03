@@ -5,7 +5,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { HistoryTable } from '@/components/history/HistoryTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { mockSignInSignOutHistory, mockStaffMembers } from '@/lib/mockData';
+import { useRealtimeAttendance } from '@/hooks/useRealtime';
 import type { SignInSignOutRecord } from '@/lib/types';
 import { BarChartBig, TrendingUp, Users, Clock } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -35,6 +35,8 @@ export default function AttendanceLogsPage() { // Renamed from HistoryPage
     setClientCurrentDate(new Date());
   }, []);
 
+  const { records } = useRealtimeAttendance(500);
+
   const attendanceSummary = useMemo(() => {
     if (!clientCurrentDate) {
         return {
@@ -48,7 +50,7 @@ export default function AttendanceLogsPage() { // Renamed from HistoryPage
     let signOutsToday = 0;
     const staffPresentToday = new Set<string>();
 
-    mockSignInSignOutHistory.forEach(record => {
+    records.forEach(record => {
       const recordDate = startOfDay(parseISO(record.timestamp));
       if (isSameDay(recordDate, today)) {
         if (record.type === 'signin') {
@@ -60,20 +62,20 @@ export default function AttendanceLogsPage() { // Renamed from HistoryPage
       }
     });
     return { signInsToday, signOutsToday, uniqueStaffToday: staffPresentToday.size };
-  }, [clientCurrentDate]);
+  }, [clientCurrentDate, records]);
 
   const dailySignInsData: DailySignIns[] = useMemo(() => {
     if (!clientCurrentDate) return [];
     const data: DailySignIns[] = [];
     for (let i = 6; i >= 0; i--) {
       const date = subDays(clientCurrentDate, i);
-      const signInsOnDate = mockSignInSignOutHistory.filter(record => 
+      const signInsOnDate = records.filter(record => 
         record.type === 'signin' && isSameDay(parseISO(record.timestamp), date)
       ).length;
       data.push({ date: format(date, 'MMM d'), signIns: signInsOnDate });
     }
     return data;
-  }, [clientCurrentDate]);
+  }, [clientCurrentDate, records]);
 
 
   return (

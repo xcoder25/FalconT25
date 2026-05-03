@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react'; 
@@ -42,7 +41,8 @@ import {
   ClipboardList,
   LayoutGrid,
   Shield,
-  Building2, // Added for Company Profile
+  Building2,
+  Crown,
 } from 'lucide-react';
 import type { NavigationItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,6 +56,10 @@ import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
 import { LoadingOverlay } from '@/components/shared/LoadingOverlay'; 
 import { SheetTitle } from '@/components/ui/sheet'; 
 import { Skeleton } from '@/components/ui/skeleton'; 
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { NotificationCenter } from '@/components/shared/NotificationCenter';
+import { Badge } from '@/components/ui/badge';
 
 const navItems: NavigationItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -84,36 +88,42 @@ const navItems: NavigationItem[] = [
   },
 ];
 
+function PlanBanner() {
+  const { planLabel, isTrialing, daysLeft } = useSubscription();
+
+  return (
+    <div className="mx-2 mb-2 p-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20">
+      <div className="flex items-center gap-2 mb-1">
+        <Crown className="h-4 w-4 text-violet-500" />
+        <span className="text-xs font-semibold text-violet-500 uppercase tracking-wider">{planLabel}</span>
+      </div>
+      {isTrialing && daysLeft !== null && (
+        <div className="text-[10px] text-muted-foreground">
+          Trial ends in <span className="font-medium text-foreground">{daysLeft} days</span>
+        </div>
+      )}
+      <Button variant="link" className="h-auto p-0 text-[10px] text-violet-500 font-medium mt-1">
+        Manage Subscription →
+      </Button>
+    </div>
+  );
+}
+
 function MyDashboardUI({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [openSettings, setOpenSettings] = React.useState(isSettingsPathActive(pathname));
   const { setIsLoading } = useLoading();
   const { isMobile } = useSidebar();
-
+  const { user, logout } = useAuth();
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string | null>(null);
-  const [isCompanyDataLoading, setIsCompanyDataLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedLogoUrl = localStorage.getItem('falconT25CompanyLogoUrl');
-      const companyDataString = localStorage.getItem('falconT25CompanyRegData');
-      let name = 'Company'; 
-      if (companyDataString) {
-        const companyData = JSON.parse(companyDataString);
-        name = companyData.companyName || 'Company';
-        setCompanyName(name);
-      }
-      setCompanyLogoUrl(storedLogoUrl || `https://placehold.co/100x100.png?text=${name.substring(0,2).toUpperCase() || 'CO'}`);
-    } catch (e) {
-      console.error("Error reading company data from localStorage", e);
-      setCompanyLogoUrl(`https://placehold.co/100x100.png?text=ERR`); 
-      setCompanyName('Company');
-    } finally {
-      setIsCompanyDataLoading(false);
-    }
-  }, []);
+    // Generate an avatar based on company name or user's display name
+    const name = user?.companyName || user?.displayName || 'Company';
+    const initials = name.substring(0, 2).toUpperCase();
+    setCompanyLogoUrl(`https://placehold.co/100x100.png?text=${initials}`);
+  }, [user]);
 
   function isSettingsPathActive(currentPath: string) {
     return navItems.find(item => item.label === 'Settings')?.children?.some(child => currentPath.startsWith(child.href)) || false;
@@ -133,19 +143,9 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [pathname, setIsLoading]);
 
-  const handleLogout = () => {
-    // In a real app, clear Firebase auth state, tokens, etc.
-    // For now, just clear relevant localStorage items and redirect.
-    try {
-      localStorage.removeItem('falconT25SetupComplete');
-      localStorage.removeItem('falconT25AdminEmail');
-      // Potentially remove company specific data too if you want a full reset experience on logout for demo
-      // localStorage.removeItem('falconT25CompanyRegData');
-      // localStorage.removeItem('falconT25CompanyLogoUrl');
-    } catch (e) {
-      console.error("Error clearing localStorage on logout", e);
-    }
-    router.push('/login');
+  const handleLogout = async () => {
+    setIsLoading(true);
+    await logout();
   };
 
   return (
@@ -220,34 +220,45 @@ function MyDashboardUI({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </ScrollArea>
         </SidebarContent>
-        <SidebarFooter className="p-2 border-t border-sidebar-border">
-          <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={handleLogout}>
+        <SidebarFooter className="border-t border-sidebar-border p-2">
+          {!isMobile && <PlanBanner />}
+          <Button variant="ghost" className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive mt-1" onClick={handleLogout}>
             <LogOut size={16} />
             <span>Logout</span>
           </Button>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
+            <div className="hidden md:flex items-center gap-3">
+              <Badge variant="outline" className="text-xs font-normal">
+                Tenant ID: <span className="font-mono ml-1">{user?.tenantId?.substring(0, 8) || '...'}</span>
+              </Badge>
+              <Badge variant="secondary" className="text-xs font-normal capitalize">
+                Role: {user?.role || '...'}
+              </Badge>
+            </div>
           </div>
-          <div>
-            {isCompanyDataLoading ? (
-              <Skeleton className="h-8 w-8 rounded-full" />
-            ) : companyLogoUrl && companyName ? (
-              <AppLogo
-                companyLogoUrl={companyLogoUrl}
-                companyName={companyName}
-                showIcon={true}
-                iconSize={32}
-              />
-            ) : (
-              <AppLogo showIcon={true} iconSize={32} textSize="text-xl" />
-            )}
+          <div className="flex items-center gap-4">
+            <NotificationCenter />
+            <div className="flex items-center gap-3 pl-4 border-l">
+               {companyLogoUrl ? (
+                 <AppLogo
+                   companyLogoUrl={companyLogoUrl}
+                   companyName={user?.companyName || user?.displayName || 'Company'}
+                   showIcon={true}
+                   iconSize={32}
+                   textSize="text-sm"
+                 />
+               ) : (
+                 <Skeleton className="h-8 w-8 rounded-full" />
+               )}
+            </div>
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-background">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/20">
             {children}
         </main>
       </SidebarInset>

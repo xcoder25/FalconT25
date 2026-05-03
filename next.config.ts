@@ -1,8 +1,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
+  output: 'standalone',
+  images: {
+    unoptimized: true,
     ignoreBuildErrors: true,
   },
   eslint: {

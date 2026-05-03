@@ -3,13 +3,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SignInSignOutRecord } from '@/lib/types';
-import { mockSignInSignOutHistory } from '@/lib/mockData';
+import { useRealtimeAttendance } from '@/hooks/useRealtime';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import type { DateRange } from 'react-day-picker';
-import { ArrowDownUp, FilterX, FileText, FileDown, AlertTriangle } from 'lucide-react';
+import { ArrowDownUp, FilterX, FileText, FileDown, AlertTriangle, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -35,7 +35,7 @@ const ClientSideFormattedTimestamp = ({ isoTimestamp }: { isoTimestamp: string }
 
 export function HistoryTable() {
   const { toast } = useToast();
-  const [historyData, setHistoryData] = useState<SignInSignOutRecord[]>(mockSignInSignOutHistory);
+  const { records: historyData, isLoading } = useRealtimeAttendance(500);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [cameraFilter, setCameraFilter] = useState('');
@@ -43,9 +43,9 @@ export function HistoryTable() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const uniqueCameras = useMemo(() => {
-    const cameras = new Set(mockSignInSignOutHistory.map(record => record.camera));
+    const cameras = new Set(historyData.map(record => record.camera));
     return Array.from(cameras);
-  }, []);
+  }, [historyData]);
 
   const filteredAndSortedHistory = useMemo(() => {
     let filtered = historyData;
@@ -234,7 +234,13 @@ export function HistoryTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedHistory.length > 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : filteredAndSortedHistory.length > 0 ? (
               filteredAndSortedHistory.map((record) => (
                 <TableRow key={record.id} className={record.staffName === 'Unrecognized Person' ? 'bg-destructive/10 hover:bg-destructive/20' : ''}>
                   <TableCell>

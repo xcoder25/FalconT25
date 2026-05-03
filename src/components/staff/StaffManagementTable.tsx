@@ -3,7 +3,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import type { StaffMember, Recognition, SignInSignOutRecord, Branch } from '@/lib/types';
-import { mockStaffMembers, mockRecognitions, mockSignInSignOutHistory, addSignInSignOutRecord, mockCameras, mockBranches } from '@/lib/mockData';
+import { mockBranches } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeStaff, useRealtimeRecognitions, useRealtimeAttendance, useRealtimeCameras } from '@/hooks/useRealtime';
+import { addStaffMember, updateStaffMember, deleteStaffMember, addAttendanceEvent } from '@/lib/firestoreService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -65,7 +68,11 @@ const NO_BRANCH_VALUE = "__NO_BRANCH_ASSIGNED__";
 
 
 export function StaffManagementTable({}: StaffManagementTableProps) {
-  const [staffList, setStaffList] = useState<StaffMember[]>(mockStaffMembers);
+  const { user } = useAuth();
+  const { staff: staffList, isLoading: loadingStaff } = useRealtimeStaff();
+  const { recognitions } = useRealtimeRecognitions();
+  const { attendance: allAttendance } = useRealtimeAttendance();
+  const { cameras } = useRealtimeCameras();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,7 +112,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   
   useEffect(() => {
     if (selectedStaffForAttendance) {
-      const logs = mockSignInSignOutHistory
+      const logs = allAttendance
         .filter(log => log.staffMemberId === selectedStaffForAttendance.id)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setIndividualAttendanceLog(logs);
@@ -115,16 +122,16 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
         setLastClockAction('signout');
       }
     }
-  }, [selectedStaffForAttendance]);
+  }, [selectedStaffForAttendance, allAttendance]);
 
 
   const recognitionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    mockRecognitions.forEach(recognition => {
+    recognitions.forEach(recognition => {
       counts[recognition.receiver.id] = (counts[recognition.receiver.id] || 0) + 1;
     });
     return counts;
-  }, []);
+  }, [recognitions]);
 
   const openModalForEdit = (staff: StaffMember) => {
     setEditingStaff(staff);
@@ -146,42 +153,55 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
   };
 
   const onSubmit = async (data: StaffFormValues) => {
+    if (!user?.tenantId) return;
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
 
-    if (editingStaff) {
-      setStaffList(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...data, imageUrl: data.imageUrl || s.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}` } : s));
-      mockStaffMembers.splice(mockStaffMembers.findIndex(s => s.id === editingStaff.id), 1, staffList.find(s => s.id === editingStaff.id)!);
-      toast({ title: 'Staff Updated', description: `${data.name} has been updated.` });
-      closeModal();
-    } else {
-      const newStaff: StaffMember = {
-        id: `staff${staffList.length + 1}-${Math.random().toString(36).substring(2, 7)}`,
-        ...data,
-        imageUrl: data.imageUrl || `https://placehold.co/150x150.png?text=${data.name.substring(0,2).toUpperCase()}`,
-        status: 'active', 
-      };
-      setStaffList(prev => [newStaff, ...prev]);
-      mockStaffMembers.push(newStaff);
-      toast({
-        title: 'Staff Registered!',
-        description: `${newStaff.name} has been successfully added.`,
-        action: <UserRoundCheck className="h-5 w-5 text-green-500" />,
-      });
-      setNewlyRegisteredStaff(newStaff);
-      setIsIdCardModalOpen(true);
-      closeModal();
+    try {
+      if (editingStaff) {
+        const imageInput = document.getElementById('imageFile') as HTMLInputElement;
+        const file = imageInput?.files?.[0];
+        
+        await updateStaffMember(user.tenantId, editingStaff.id, data, file);
+        toast({ title: 'Staff Updated', description: `${data.name} has been updated.` });
+        closeModal();
+      } else {
+        const imageInput = document.getElementById('imageFile') as HTMLInputElement;
+        const file = imageInput?.files?.[0];
+        
+        const newStaff = await addStaffMember(user.tenantId, {
+          name: data.name,
+          email: data.email,
+          imageUrl: data.imageUrl || '',
+          department: data.department || '',
+          branchId: data.branchId || '',
+          status: 'active'
+        }, file);
+        
+        toast({
+          title: 'Staff Registered!',
+          description: `${newStaff.name} has been successfully added.`,
+          action: <UserRoundCheck className="h-5 w-5 text-green-500" />,
+        });
+        setNewlyRegisteredStaff(newStaff as StaffMember);
+        setIsIdCardModalOpen(true);
+        closeModal();
+      }
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
     setIsSubmitting(false);
   };
 
   const handleDeleteStaff = async (staffId: string) => {
+    if (!user?.tenantId) return;
     if (window.confirm('Are you sure you want to delete this staff member?')) {
       setIsSubmitting(true); 
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setStaffList(prev => prev.filter(s => s.id !== staffId));
-      mockStaffMembers.splice(mockStaffMembers.findIndex(s => s.id === staffId), 1);
-      toast({ title: 'Staff Deleted', description: 'The staff member has been removed.', variant: 'destructive' });
+      try {
+          await deleteStaffMember(user.tenantId, staffId);
+          toast({ title: 'Staff Deleted', description: 'The staff member has been removed.', variant: 'destructive' });
+      } catch (e: any) {
+          toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      }
       setIsSubmitting(false);
     }
   };
@@ -207,7 +227,7 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     setHighlights([]);
 
     try {
-      const staffRecognitions = mockRecognitions.filter(rec => rec.receiver.id === staff.id);
+      const staffRecognitions = recognitions.filter(rec => rec.receiver.id === staff.id);
       if (staffRecognitions.length === 0) {
         setHighlights(["This staff member has not received any recognitions yet."]);
         setIsFetchingHighlights(false);
@@ -242,40 +262,33 @@ export function StaffManagementTable({}: StaffManagementTableProps) {
     setIsAttendanceLogModalOpen(true);
   };
   
-  const handleSimulateClockAction = () => {
-    if (!selectedStaffForAttendance) return;
+  const handleSimulateClockAction = async () => {
+    if (!selectedStaffForAttendance || !user?.tenantId) return;
     
     const newActionType = lastClockAction === 'signout' ? 'signin' : 'signout';
     
-    let cameraName: string;
-    if (mockCameras.length > 0 && Math.random() < 0.5) { 
-        const randomCameraFromList = mockCameras[Math.floor(Math.random() * mockCameras.length)];
+    let cameraName: string = "Phone Camera";
+    if (cameras.length > 0 && Math.random() < 0.5) { 
+        const randomCameraFromList = cameras[Math.floor(Math.random() * cameras.length)];
         cameraName = randomCameraFromList.name;
-    } else {
-        cameraName = "Phone Camera"; 
-    }
-    if (mockCameras.length === 0) { // Fallback if no cameras are defined
-        cameraName = "Phone Camera";
     }
 
-    addSignInSignOutRecord({
-        staffMemberId: selectedStaffForAttendance.id,
-        timestamp: new Date().toISOString(),
-        type: newActionType,
-        camera: cameraName,
-    });
-    
-    const updatedLogs = mockSignInSignOutHistory
-        .filter(log => log.staffMemberId === selectedStaffForAttendance!.id)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    setIndividualAttendanceLog(updatedLogs);
-    
-    setLastClockAction(newActionType); 
-    
-    toast({
-        title: `Mock ${newActionType.charAt(0).toUpperCase() + newActionType.slice(1)} Recorded`,
-        description: `${selectedStaffForAttendance.name} ${newActionType === 'signin' ? 'clocked in' : 'clocked out'} at ${cameraName}.`,
-    });
+    try {
+        await addAttendanceEvent(user.tenantId, {
+            staffMemberId: selectedStaffForAttendance.id,
+            staffName: selectedStaffForAttendance.name,
+            timestamp: new Date().toISOString(),
+            type: newActionType,
+            camera: cameraName,
+            branchId: selectedStaffForAttendance.branchId,
+        });
+        toast({
+            title: `${newActionType.charAt(0).toUpperCase() + newActionType.slice(1)} Recorded`,
+            description: `${selectedStaffForAttendance.name} ${newActionType === 'signin' ? 'clocked in' : 'clocked out'} at ${cameraName}.`,
+        });
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
   };
 
 

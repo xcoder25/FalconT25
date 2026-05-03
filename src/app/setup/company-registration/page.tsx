@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -75,12 +74,17 @@ export default function CompanyRegistrationPage() {
 
   const onSubmit = async (data: CompanyRegistrationFormValues) => {
     setIsLoading(true);
-    console.log('Company Registration Data (Simulated):', data);
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
+    // We save all data to local storage so the next step can send it to the backend.
     try {
-      localStorage.setItem('falconT25CompanyRegData', JSON.stringify({ companyName: data.companyName }));
+      localStorage.setItem('falconT25CompanyRegData', JSON.stringify({ 
+        companyName: data.companyName,
+        companyEmail: data.companyEmail,
+        companyPhone: data.companyPhone,
+        companyAddress: data.companyAddress,
+        industryType: data.industryType,
+        companySize: data.companySize,
+      }));
       if (data.companyLogo && data.companyName) {
         // Simulate storing a URL for the logo. In a real app, this would be the URL after uploading to a server.
         const companyInitials = data.companyName.substring(0, 2).toUpperCase() || 'LG';
@@ -91,7 +95,6 @@ export default function CompanyRegistrationPage() {
     } catch (e) {
       console.error("Failed to save to localStorage", e);
     }
-
 
     toast({
       title: 'Step 1 Complete!',

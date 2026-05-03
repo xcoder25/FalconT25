@@ -11,10 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { mockUsers, mockRecognitionValues } from '@/lib/mockData';
+import { mockRecognitionValues } from '@/lib/mockData';
 import type { User, RecognitionValue } from '@/lib/types';
 import { AiReasonSuggester } from './AiReasonSuggester';
 import { Loader2, Send } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeStaff } from '@/hooks/useRealtime';
+import { addRecognition } from '@/lib/firestoreService';
 
 const nominationFormSchema = z.object({
   colleagueId: z.string().min(1, 'Please select a colleague.'),
@@ -28,6 +31,8 @@ type NominationFormValues = z.infer<typeof nominationFormSchema>;
 export function NominationForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user: currentUser } = useAuth();
+  const { staff } = useRealtimeStaff();
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<NominationFormValues>({
     resolver: zodResolver(nominationFormSchema),
@@ -42,21 +47,36 @@ export function NominationForm() {
 
 
   const onSubmit = async (data: NominationFormValues) => {
+    if (!currentUser?.tenantId) return;
     setIsSubmitting(true);
-    console.log('Nomination Data:', data);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
     const finalReason = (isCustomReason && data.customReason) 
       ? data.customReason 
       : mockRecognitionValues.find(v => v.id === data.recognitionValueId)?.name || 'Outstanding Work';
 
-    toast({
-      title: 'Nomination Submitted!',
-      description: `${mockUsers.find(u=>u.id === data.colleagueId)?.name} nominated for ${finalReason}.`,
-      variant: 'default',
-    });
-    // Reset form if needed, or redirect
+    const nominatedStaff = staff.find(s => s.id === data.colleagueId);
+
+    try {
+        await addRecognition(currentUser.tenantId, {
+            giver: { id: currentUser.uid, name: currentUser.email || 'You' },
+            receiver: { id: data.colleagueId, name: nominatedStaff?.name || 'Unknown Colleague' },
+            value: mockRecognitionValues.find(v => v.id === data.recognitionValueId)?.name,
+            reason: finalReason,
+            message: data.personalMessage,
+            timestamp: new Date().toISOString(),
+            reactions: [],
+            comments: []
+        });
+
+        toast({
+            title: 'Nomination Submitted!',
+            description: `${nominatedStaff?.name} nominated for ${finalReason}.`,
+            variant: 'default',
+        });
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+    
     setIsSubmitting(false);
     // Ideally reset form:
     // reset(); // if using react-hook-form's reset
@@ -102,7 +122,7 @@ export function NominationForm() {
                       <SelectValue placeholder="Select a colleague" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockUsers.map((user: User) => (
+                      {staff.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name}
                         </SelectItem>

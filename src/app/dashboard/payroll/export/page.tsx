@@ -13,9 +13,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { FileDown, Filter, TableProperties, Search, FileText, Sheet as SheetIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { mockStaffMembers, mockBranches } from '@/lib/mockData'; // Assuming these exist
-import type { StaffMember, Branch } from '@/lib/types'; // Assuming these exist
+import { mockBranches } from '@/lib/mockData';
+import type { StaffMember, Branch } from '@/lib/types';
+import { useRealtimeStaff } from '@/hooks/useRealtime';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useElectronExport } from '@/hooks/useElectronExport';
 
 // Mock payroll summary data structure
 interface PayrollSummaryEntry {
@@ -57,6 +60,8 @@ const generateMockPayrollData = (staffList: StaffMember[], branches: Branch[]): 
 
 export default function PayrollExportPage() {
   const { toast } = useToast();
+  const { staff } = useRealtimeStaff();
+  const { exportFile } = useElectronExport();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
@@ -65,12 +70,12 @@ export default function PayrollExportPage() {
   const [branchFilter, setBranchFilter] = useState<string>(ALL_BRANCHES);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const mockPayrollData = useMemo(() => generateMockPayrollData(mockStaffMembers, mockBranches), []);
+  const mockPayrollData = useMemo(() => generateMockPayrollData(staff, mockBranches), [staff]);
 
   const uniqueDepartments = useMemo(() => {
-    const depts = new Set(mockStaffMembers.map(s => s.department).filter(Boolean));
+    const depts = new Set(staff.map(s => s.department).filter(Boolean));
     return Array.from(depts) as string[];
-  }, []);
+  }, [staff]);
   
   const uniqueBranches = useMemo(() => {
     return mockBranches.map(b => b.name);
@@ -88,11 +93,33 @@ export default function PayrollExportPage() {
     });
   }, [mockPayrollData, departmentFilter, branchFilter, searchTerm, dateRange]);
 
-  const handleExportCSV = () => {
-    toast({ title: 'Exporting CSV (Mock)', description: 'Payroll data would be compiled and downloaded as CSV.' });
+  const handleExportCSV = async () => {
+    // Generate CSV content
+    const headers = ["Staff Name", "Department", "Branch", "Base Salary", "Allowances", "Deductions", "Net Pay"];
+    const rows = filteredPayrollData.map(item => [
+      item.staffName,
+      item.department || 'N/A',
+      item.branchName || 'N/A',
+      item.baseSalary,
+      item.allowancesTotal,
+      item.deductionsTotal,
+      item.netPay
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+
+    const result = await exportFile('payroll_export.csv', csvContent, 'text/csv', [
+      { name: 'CSV Files', extensions: ['csv'] }
+    ]);
+
+    if (result.success) {
+      toast({ title: 'Export Successful', description: `Payroll data saved to disk.` });
+    } else if (!result.cancelled) {
+      toast({ title: 'Export Failed', description: 'Could not save the file.', variant: 'destructive' });
+    }
   };
+
   const handleExportPDF = () => {
-    toast({ title: 'Exporting PDF (Mock)', description: 'Payroll summary would be generated as a PDF.' });
+    toast({ title: 'Exporting PDF (Coming Soon)', description: 'Native PDF generation is being linked to the shell.' });
   };
 
   return (

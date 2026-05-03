@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { UserPlus, UploadCloud, Mic, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const adminRegistrationSchema = z.object({
   adminFullName: z.string().min(2, 'Full name must be at least 2 characters.'),
@@ -32,19 +32,19 @@ type AdminRegistrationFormValues = z.infer<typeof adminRegistrationSchema>;
 export default function AdminRegistrationPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [faceImageName, setFaceImageName] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [companyData, setCompanyData] = useState<any>(null);
 
   useEffect(() => {
-    // Retrieve company name from localStorage (for demo)
+    // Retrieve company name from localStorage
     try {
       const companyDataString = localStorage.getItem('falconT25CompanyRegData');
       if (companyDataString) {
-        const companyData = JSON.parse(companyDataString);
-        setCompanyName(companyData.companyName || 'Your Company');
+        setCompanyData(JSON.parse(companyDataString));
       } else {
         // If no data, redirect back to company registration
         toast({ variant: "destructive", title: "Setup Error", description: "Company details not found. Please start over." });
@@ -82,33 +82,49 @@ export default function AdminRegistrationPage() {
   };
 
   const onSubmit = async (data: AdminRegistrationFormValues) => {
+    if (!companyData) return;
+    
     setIsLoading(true);
-    console.log('Admin Registration Data (Simulated):', data);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Simulate successful setup
-    // In a real app, you'd get a token and handle login state
     try {
-        localStorage.setItem('falconT25SetupComplete', 'true');
-        localStorage.setItem('falconT25AdminEmail', data.adminEmail); // Save admin email for login page prefill
-    } catch (e) {
-        console.error("Failed to save setup status to localStorage", e);
+      // Call the real registration function which creates the Firebase user, 
+      // the tenant document, and the subscription via the API route we created.
+      await register({
+        email: data.adminEmail,
+        password: data.adminPassword,
+        displayName: data.adminFullName,
+        companyName: companyData.companyName,
+        companyEmail: companyData.companyEmail,
+        companyPhone: companyData.companyPhone,
+        companyAddress: companyData.companyAddress,
+        industryType: companyData.industryType,
+        companySize: companyData.companySize,
+      });
+
+      // Mark setup as complete
+      localStorage.setItem('falconT25SetupComplete', 'true');
+      localStorage.setItem('falconT25AdminEmail', data.adminEmail);
+
+      toast({
+        title: 'Admin Account Created!',
+        description: `Setup for ${companyData.companyName} is complete. Welcome, ${data.adminFullName}!`,
+        className: 'bg-green-500 text-white',
+        duration: 5000,
+      });
+      
+      // Navigate to dashboard
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-
-    toast({
-      title: 'Admin Account Created!',
-      description: `Setup for ${companyName} is complete. Welcome, ${data.adminFullName}!`,
-      className: 'bg-green-500 text-white',
-      duration: 5000,
-    });
-    setIsLoading(false);
-    // Redirect to dashboard (simulating login)
-    router.push('/dashboard');
   };
 
-  if (!companyName) {
+  if (!companyData) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground p-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -128,7 +144,7 @@ export default function AdminRegistrationPage() {
             <UserPlus className="h-7 w-7 text-primary" />
             Admin Account Setup (Step 2 of 2)
           </CardTitle>
-          <CardDescription>Create the primary administrator account for {companyName}.</CardDescription>
+          <CardDescription>Create the primary administrator account for {companyData.companyName}.</CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6 max-h-[70vh] overflow-y-auto p-6">
